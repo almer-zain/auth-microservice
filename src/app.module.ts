@@ -5,21 +5,51 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Joi from 'joi';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { GracefulShutdownModule } from 'nestjs-graceful-shutdown';
+import { HealthModule } from './modules/health/health.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
+
+import { ConfigManagerModule } from './config/config-manager.module';
 
 @Module({
   imports: [
+    HealthModule,
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigManagerModule],
+      inject: [AppService], 
+      useFactory: async (appService: AppService) => {
+        if (appService.useRedis()) {
+          return {
+            store: await redisStore({
+              url: appService.getRedisUrl(),
+              ttl: appService.getCacheTTL(),
+            }),
+          };
+        }
+        // Fallback to In-Memory if Redis is off
+        return {
+          ttl: appService.getCacheTTL(),
+        };
+      },
+    }),
 
+    GracefulShutdownModule.forRoot({
+      cleanup: async (app) => {
+        console.log('App is shutting down...');
+      },
+    }),
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      imports: [ConfigManagerModule],
+      inject: [AppService],
+      useFactory: (appService: AppService) => ({
         throttlers: [
           {
-            ttl: config.get<number>("RATELIMIT_TTL")!,
-            limit: config.get<number>("RATELIMIT_MAX")!,
+            ttl: appService.getRateLimitTTL(),
+            limit: appService.getRateLimitMax(),
           },
         ],
-
       }),
     }),
     ConfigModule.forRoot({
@@ -38,22 +68,25 @@ import { ThrottlerModule } from '@nestjs/throttler';
 
         JWT_SECRET: Joi.string().required(),
       }),
+      validationOptions: {
+        convert: true, 
+      },
     }),
 
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: config.get<'mysql' | 'postgres'>('DB_TYPE')!,
-        host: config.get<string>('DB_HOST')!,
-        port: config.get<number>('DB_PORT')!,
-        username: config.get<string>('DB_USERNAME')!,
-        password: config.get<string>('DB_PASSWORD')!,
-        database: config.get<string>('DB_NAME')!,
-        synchronize: config.get<boolean>('DB_SYNCHRONIZE')!,
+      imports: [ConfigManagerModule],
+      inject: [AppService],
+      useFactory: (appService: AppService) => ({
+        type: appService.getDatabaseType() as any,
+        host: appService.getDatabaseUrl(),
+        port: appService.getDatabasePort(),
+        username: appService.getDatabaseUsername(),
+        password: appService.getDatabasePassword(),
+        database: appService.getDatabaseName(),
+        synchronize: appService.getDatabaseSynchronize(),
         autoLoadEntities: true,
       }),
-    })
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
