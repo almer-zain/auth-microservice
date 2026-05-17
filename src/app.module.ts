@@ -11,6 +11,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 
 import { ConfigManagerModule } from './config/config-manager.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -72,7 +73,18 @@ import { ConfigManagerModule } from './config/config-manager.module';
         convert: true, 
       },
     }),
-
+    JwtModule.registerAsync({
+      imports: [ConfigManagerModule],
+      inject: [AppService], 
+      useFactory: (appService: AppService) => ({
+        secret: appService.getJwt(),
+        signOptions: { 
+          expiresIn: appService.getJwtExpiry(),
+          algorithm: 'HS256', 
+          noTimestamp: false,
+        },
+      })
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigManagerModule],
       inject: [AppService],

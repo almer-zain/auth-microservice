@@ -16,23 +16,30 @@ export class AppService {
   /**
    * App Configurations
    */
-  getJWT(): string {
-    return this.getEnv('JWT_SECRET');
+  getNodeEnv(): string {
+    return this.getEnv<string>('NODE_ENV', 'development');
   }
 
-  getNodeEnv(): string {
-    return this.getEnv('NODE_ENV', 'development');
+  /**
+   * Jwt
+   */
+  getJwt(): string {
+    return this.getEnv<string>('JWT_SECRET');
+  }
+
+  getJwtExpiry(): number {
+    return this.getEnv<number>('JWT_EXPIRY');
   }
 
   /**
    * Database Configurations
    */
   getDatabaseType(): string {
-    return this.getEnv('DB_TYPE', 'mysql');
+    return this.getEnv<string>('DB_TYPE', 'mysql');
   }
 
   getDatabaseUrl(): string {
-    return this.getEnv('DB_HOST', 'localhost');
+    return this.getEnv<string>('DB_HOST', 'localhost');
   }
 
   getDatabasePort(): number {
@@ -40,15 +47,15 @@ export class AppService {
   }
 
   getDatabaseUsername(): string {
-    return this.getEnv('DB_USERNAME', 'root');
+    return this.getEnv<string>('DB_USERNAME', 'root');
   }
 
   getDatabasePassword(): string {
-    return this.getEnv('DB_PASSWORD', 'root');
+    return this.getEnv<string>('DB_PASSWORD', 'root');
   }
 
   getDatabaseName(): string {
-    return this.getEnv('DB_NAME', 'test');
+    return this.getEnv<string>('DB_NAME', 'test');
   }
 
   getDatabaseSynchronize(): boolean {
