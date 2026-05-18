@@ -12,19 +12,24 @@ export class AuthController {
     return this.authService.register(data);
   }
 
-  @MessagePattern('auth.login')
-  login(@Payload() data: any) {
-    return this.authService.login(data);
+  @MessagePattern('auth.admin.login')
+  adminLogin(@Payload() data: any) {
+    return this.authService.login(data, 'admin'); // It will now look in the admins table!
   }
 
+  @MessagePattern('auth.user.login')
+  userLogin(@Payload() data: any) {
+    return this.authService.login(data); // Defaults to 'user', looks in users table!
+  }
+  
   @MessagePattern('auth.generate2FA')
   generate2FA(@Payload() userId: number) {
     return this.authService.generate2FASecret(userId);
   }
 
   @MessagePattern('auth.verify2FA')
-  verify2FA(@Payload() data: { userId: number; token: string }) {
-    return this.authService.verify2FA(data.userId, data.token);
+  verify2FA(@Payload() data: { userAgent: any, userId: number; token: string }) {
+    return this.authService.verify2FA(data.userAgent, data.userId, data.token);
   }
 
   @MessagePattern('auth.forgotPassword')
