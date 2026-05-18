@@ -12,9 +12,43 @@ import { redisStore } from 'cache-manager-redis-yet';
 
 import { ConfigManagerModule } from './config/config-manager.module';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './config/strategies/jwt.strategy';
+import { PermissionModule } from './modules/permissions/permissions.module';
+import { RoleModule } from './modules/roles/roles.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { join } from 'path';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
+import { AdminsModule } from './modules/admins/admins.module';
 
 @Module({
   imports: [
+    MailerModule.forRootAsync({
+      inject: [AppService],
+      useFactory: async (appService: AppService) => ({
+        transport: {
+          host: appService.getMailHost(),
+          port: appService.getMailPort(),
+          secure: appService.getMailSecure(),
+          auth: appService.getMailUser()
+            ? {
+                user: appService.getMailUser(),
+                pass: appService.getMailPass(),
+              }
+            : undefined, // Mailpit doesn't need auth
+        },
+        defaults: {
+          from: `"${appService.getAppName()}" <${appService.getMailFrom()}>`,
+        },
+        template: {
+          dir: join(__dirname, 'templates'), // Looks in src/modules/mail/templates
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+    }),
     HealthModule,
     CacheModule.registerAsync({
       isGlobal: true,
@@ -81,6 +115,9 @@ import { JwtModule } from '@nestjs/jwt';
         signOptions: { 
           expiresIn: appService.getJwtExpiry(),
           algorithm: 'HS256', 
+
+          // issuer: 'auth-microservice', // Identifies who created the token
+          // audience: 'my-app-web',      // Identifies who the token is for
           noTimestamp: false,
         },
       })
@@ -99,8 +136,14 @@ import { JwtModule } from '@nestjs/jwt';
         autoLoadEntities: true,
       }),
     }),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    AdminsModule,
+    PermissionModule,
+    RoleModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppController, JwtStrategy], // <--- Add it here
+  exports: [PassportModule, JwtStrategy]
+
 })
 export class AppModule {}

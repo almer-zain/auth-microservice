@@ -20,6 +20,10 @@ export class AppService {
     return this.getEnv<string>('NODE_ENV', 'development');
   }
 
+  getAppName(): string {
+    return this.getEnv<string>('APP_NAME', 'MyApp');
+  }
+
   /**
    * Jwt
    */
@@ -122,6 +126,44 @@ export class AppService {
    */
   getCacheTTL(): number {
     return this.configService.get<number>('CACHE_TTL', 600);
+  }
+
+  /**
+   * Mail Configurations
+   */
+  getMailHost(): string {
+    return this.configService.get<string>('MAIL_HOST', "sandbox.smtp.mailtrap.io");
+  }
+
+  getMailPort(): number {
+    return this.configService.get<number>('MAIL_PORT', 2525);
+  }
+
+  getMailUser(): string {
+    return this.configService.get<string>('MAIL_USER', "your_mailtrap_user");
+  }
+
+  getMailPass(): string {
+    return this.configService.get<string>('MAIL_PASS', "your_mailtrap_pass");
+  }
+
+  getMailFrom(): string {
+    return this.configService.get<string>('MAIL_FROM', "No Reply <noreply@mymicroservice.com>");
+  }
+
+  getMailSecure(): boolean {
+    return this.configService.get<boolean>('MAIL_SECURE', true);
+  }
+
+  /**
+   * Captcha Configurations
+   */
+  getCaptchaEnabled(): boolean {
+    return this.configService.get<boolean>('CAPTCHA_ENABLED', true);
+  }
+
+  getCaptchaSecret(): string {
+    return this.configService.get<string>('CAPTCHA_SECRET', "your_cloudflare_turnstile_or_recaptcha_secret");
   }
 
 }

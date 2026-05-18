@@ -54,7 +54,7 @@ export function Match(
 | - no double symbols
 | - 8-32 chars
 */
-export function IsUsername(validationOptions?: ValidationOptions) {
+export function IsValidUsername(validationOptions?: ValidationOptions) {
   return Matches(
     /^(?!.*[._]{2})[a-z0-9][a-z0-9._]{6,30}[a-z0-9]$/,
     {

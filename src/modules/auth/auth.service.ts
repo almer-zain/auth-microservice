@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from '../users/entities/user.entity';
+import { Admin } from '../admins/entities/admin.entity';
 
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -22,6 +23,10 @@ import {
 
 import * as QRCode from 'qrcode';
 import { generateToken } from 'src/utils/jwt';
+import { MailService } from '../mail/mail.service';
+import { AppService } from 'src/app.service';
+import { CaptchaService } from './captcha.service';
+import { DeviceService } from './device.service';
 
 @Injectable()
 export class AuthService {
@@ -29,41 +34,67 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
 
+    @InjectRepository(Admin)
+    private adminRepository: Repository<Admin>, // <-- Added
+
     private jwtService: JwtService,
+    private mailService: MailService,
+    private appService: AppService,
+    private captchaService: CaptchaService,
+    private deviceService: DeviceService, 
   ) {}
+
+  // --- DYNAMIC REPO HELPER ---
+  // Picks the correct database table dynamically
+  private getRepo(type: 'user' | 'admin') {
+    return type === 'admin' ? this.adminRepository : this.userRepository;
+  }
 
   // ----------------------------------------------------------------
   // Register
   // ----------------------------------------------------------------
 
-  async register(data: any) {
+  async register(data: any, accountType: 'user' | 'admin' = 'user') {
+
+    await this.captchaService.verify(data.captchaToken);
+    
+    const repo = this.getRepo(accountType);
+
     const hashedPassword = await bcrypt.hash(
       data.password,
       10,
     );
 
-    const user = this.userRepository.create({
+    const account = repo.create({
       ...data,
       password: hashedPassword,
     });
 
-    return this.userRepository.save(user);
+    return repo.save(account);
   }
 
   // ----------------------------------------------------------------
   // Login
   // ----------------------------------------------------------------
+  async login(data: any, accountType: 'user' | 'admin' = 'user') {
 
-  async login(data: any) {
-    const user = await this.userRepository.findOneBy({
-      email: data.email,
+    await this.captchaService.verify(data.captchaToken);
+
+    const repo = this.getRepo(accountType);
+
+    // Because password has `select: false` in the Entity, 
+    // we must explicitly select it here, otherwise bcrypt will fail!
+    const account = await repo.findOne({
+      where: { email: data.email },
+      select: ['id', 'email', 'password', 'isTwoFactorEnabled'], 
+      relations: ['roles', 'roles.permissions'], // Needed so generateToken has permissions!
     });
 
     if (
-      !user ||
+      !account ||
       !(await bcrypt.compare(
         data.password,
-        user.password,
+        account.password,
       ))
     ) {
       throw new UnauthorizedException(
@@ -71,42 +102,53 @@ export class AuthService {
       );
     }
 
-    if (user.isTwoFactorEnabled) {
+    if (account.isTwoFactorEnabled) {
       return {
         mfaRequired: true,
-        userId: user.id,
+        userId: account.id,
       };
     }
 
-    return generateToken(user);
+    this.deviceService.checkAndAlert(
+      account.id, 
+      accountType, 
+      account.email, 
+      data.ip, 
+      data.userAgent
+    ).catch(err => console.error('Device check failed', err));
+
+
+    return await generateToken(account);
   }
 
   // ----------------------------------------------------------------
   // Generate 2FA Secret
   // ----------------------------------------------------------------
+  async generate2FASecret(userId: number, accountType: 'user' | 'admin' = 'user') {
+    
+    const repo = this.getRepo(accountType);
 
-  async generate2FASecret(userId: number) {
-    const user = await this.userRepository.findOneBy({
+    const account = await repo.findOneBy({
       id: userId,
     });
 
-    if (!user) {
+    if (!account) {
       throw new BadRequestException(
-        'User not found',
+        'Account not found',
       );
     }
 
     const secret = generateSecret();
 
     const uri = generateURI({
-      issuer: 'MyMicroservice',
-      label: user.email,
+      issuer: 'AuthService',
+      label: account.email,
       secret,
     });
 
     const qrCode = await QRCode.toDataURL(uri);
 
-    await this.userRepository.update(userId, {
+    await repo.update(userId, {
       twoFactorSecret: secret,
     });
 
@@ -122,21 +164,26 @@ export class AuthService {
   // ----------------------------------------------------------------
 
   async verify2FA(
+    data: any,
     userId: number,
     token: string,
+    accountType: 'user' | 'admin' = 'user'
   ) {
-    const user = await this.userRepository.findOneBy({
-      id: userId,
+    const repo = this.getRepo(accountType);
+
+    const account = await repo.findOne({
+      where: { id: userId },
+      relations: ['roles', 'roles.permissions'], // Needed so generateToken has permissions!
     });
 
-    if (!user || !user.twoFactorSecret) {
+    if (!account || !account.twoFactorSecret) {
       throw new UnauthorizedException(
         '2FA not initialized',
       );
     }
 
     const result = await verify({
-      secret: user.twoFactorSecret,
+      secret: account.twoFactorSecret,
       token,
     });
 
@@ -146,23 +193,33 @@ export class AuthService {
       );
     }
 
-    await this.userRepository.update(userId, {
+    await repo.update(userId, {
       isTwoFactorEnabled: true,
     });
 
-    return generateToken(user);
+    this.deviceService.checkAndAlert(
+      account.id, 
+      accountType, 
+      account.email, 
+      data.ip, 
+      data.userAgent
+    ).catch(err => console.error('Device check failed', err));
+
+    return await generateToken(account);
   }
 
   // ----------------------------------------------------------------
   // Forgot Password
   // ----------------------------------------------------------------
 
-  async forgotPassword(email: string) {
-    const user = await this.userRepository.findOneBy({
+  async forgotPassword(email: string, accountType: 'user' | 'admin' = 'user') {
+    const repo = this.getRepo(accountType);
+
+    const account = await repo.findOneBy({
       email,
     });
 
-    if (!user) {
+    if (!account) {
       return {
         message: 'If email exists, code sent',
       };
@@ -176,14 +233,21 @@ export class AuthService {
       Date.now() + 15 * 60 * 1000,
     );
 
-    await this.userRepository.update(user.id, {
+
+    await repo.update(account.id, {
       passwordResetCode: code,
       passwordResetExpires: expires,
     });
 
-    return {
+    this.mailService.sendPasswordResetEmail(account.email, code);
+
+    // Return code if in development (to make debugging easier)
+    return (this.appService.getNodeEnv() == "development") ? {
       message: 'Reset code generated',
-      code,
+      email,
+      code
+    } : {
+      message: 'Reset code generated',
     };
   }
 
@@ -191,16 +255,18 @@ export class AuthService {
   // Reset Password
   // ----------------------------------------------------------------
 
-  async resetPassword(data: any) {
-    const user = await this.userRepository.findOneBy({
+  async resetPassword(data: any, accountType: 'user' | 'admin' = 'user') {
+    const repo = this.getRepo(accountType);
+
+    const account = await repo.findOneBy({
       email: data.email,
       passwordResetCode: data.code,
     });
 
     if (
-      !user ||
-      !user.passwordResetExpires ||
-      user.passwordResetExpires < new Date()
+      !account ||
+      !account.passwordResetExpires ||
+      account.passwordResetExpires < new Date()
     ) {
       throw new BadRequestException(
         'Invalid or expired code',
@@ -212,7 +278,7 @@ export class AuthService {
       10,
     );
 
-    await this.userRepository.update(user.id, {
+    await repo.update(account.id, {
       password: hashedPassword,
       passwordResetCode: null,
       passwordResetExpires: null,

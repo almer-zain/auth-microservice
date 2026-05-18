@@ -1,12 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import { IsValidUsername } from 'src/utils/auth-decorator';
 
 export class RegisterDto {
   @ApiProperty()
-  @Matches(/^(?!.*[._]{2})[a-zA-Z0-9](?:[a-zA-Z0-9._]{6,30})[a-zA-Z0-9]$/, {
-    message:
-      'Username must be 8-32 chars, alphanumeric, and may contain . or _ only',
-  })
+  @IsValidUsername()
   username: string;
 
   @ApiProperty()
@@ -21,5 +19,3 @@ export class RegisterDto {
   @MinLength(8)
   password: string;
 }
-
-export class LoginDto extends RegisterDto {}
