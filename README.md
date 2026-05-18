@@ -2,5 +2,5 @@
 FOR ME:
 
 TODO:
-- -ACTUAL EMAIL STUFF-
-- TESTING THE APIS USING POSTMAN
+- ACTUAL EMAIL STUFF (Mostly done, need testing?)
+- TESTING THE APIS USING POSTMAN (Definitely need testing)
