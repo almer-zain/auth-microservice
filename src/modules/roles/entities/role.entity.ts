@@ -1,5 +1,14 @@
-import { Permission } from "src/modules/permissions/entities/permission.entity";
-import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Permission,
+  PermissionEntity,
+} from 'src/modules/permissions/entities/permission.entity';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('roles')
 export class Role {
@@ -12,4 +21,14 @@ export class Role {
   @ManyToMany(() => Permission, { eager: true })
   @JoinTable()
   permissions: Permission[];
+}
+
+export interface RoleEntity {
+  permissions: PermissionEntity[];
+}
+
+export interface AccountWithRoles {
+  id: number;
+  email: string;
+  roles?: RoleEntity[];
 }

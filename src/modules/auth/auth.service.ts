@@ -2,31 +2,29 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
-
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { generateSecret, generateURI, verify } from 'otplib';
+import * as QRCode from 'qrcode';
+import type { ConfigService, ConfigType } from '@nestjs/config';
 
 import { User } from '../users/entities/user.entity';
 import { Admin } from '../admins/entities/admin.entity';
-
-import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
-
-import { JwtService } from '@nestjs/jwt';
-
-import {
-  generateSecret,
-  generateURI,
-  verify,
-} from 'otplib';
-
-import * as QRCode from 'qrcode';
-import { generateToken } from 'src/utils/jwt';
 import { MailService } from '../mail/mail.service';
-import { AppService } from 'src/app.service';
 import { CaptchaService } from './captcha.service';
 import { DeviceService } from './device.service';
+import jwtConfig from 'src/config/namespaces/jwt.config';
+
+import { Verify2FAPayload } from './auth.controller';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AccountWithRoles } from '../roles/entities/role.entity';
 
 @Injectable()
 export class AuthService {
@@ -39,9 +37,12 @@ export class AuthService {
 
     private jwtService: JwtService,
     private mailService: MailService,
-    private appService: AppService,
+    private configService: ConfigService,
     private captchaService: CaptchaService,
-    private deviceService: DeviceService, 
+    private deviceService: DeviceService,
+
+    @Inject(jwtConfig.KEY)
+    private readonly jwtConf: ConfigType<typeof jwtConfig>,
   ) {}
 
   // --- DYNAMIC REPO HELPER ---
@@ -54,16 +55,11 @@ export class AuthService {
   // Register
   // ----------------------------------------------------------------
 
-  async register(data: any, accountType: 'user' | 'admin' = 'user') {
-
+  async register(data: RegisterDto, accountType: 'user' | 'admin' = 'user') {
     await this.captchaService.verify(data.captchaToken);
-    
     const repo = this.getRepo(accountType);
 
-    const hashedPassword = await bcrypt.hash(
-      data.password,
-      10,
-    );
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const account = repo.create({
       ...data,
@@ -76,56 +72,44 @@ export class AuthService {
   // ----------------------------------------------------------------
   // Login
   // ----------------------------------------------------------------
-  async login(data: any, accountType: 'user' | 'admin' = 'user') {
-
+  async login(data: LoginDto, accountType: 'user' | 'admin' = 'user') {
     await this.captchaService.verify(data.captchaToken);
-
     const repo = this.getRepo(accountType);
 
-    // Because password has `select: false` in the Entity, 
-    // we must explicitly select it here, otherwise bcrypt will fail!
     const account = await repo.findOne({
       where: { email: data.email },
-      select: ['id', 'email', 'password', 'isTwoFactorEnabled'], 
-      relations: ['roles', 'roles.permissions'], // Needed so generateToken has permissions!
+      select: ['id', 'email', 'password', 'isTwoFactorEnabled'],
+      relations: ['roles', 'roles.permissions'],
     });
 
-    if (
-      !account ||
-      !(await bcrypt.compare(
-        data.password,
-        account.password,
-      ))
-    ) {
-      throw new UnauthorizedException(
-        'Invalid credentials',
-      );
+    if (!account || !(await bcrypt.compare(data.password, account.password))) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     if (account.isTwoFactorEnabled) {
-      return {
-        mfaRequired: true,
-        userId: account.id,
-      };
+      return { mfaRequired: true, userId: account.id };
     }
 
-    this.deviceService.checkAndAlert(
-      account.id, 
-      accountType, 
-      account.email, 
-      data.ip, 
-      data.userAgent
-    ).catch(err => console.error('Device check failed', err));
+    this.deviceService
+      .checkAndAlert(
+        account.id,
+        accountType,
+        account.email,
+        data.ip,
+        data.userAgent,
+      )
+      .catch((err) => console.error('Device check failed', err));
 
-
-    return await generateToken(account);
+    return await this.generateTokens(account);
   }
 
   // ----------------------------------------------------------------
   // Generate 2FA Secret
   // ----------------------------------------------------------------
-  async generate2FASecret(userId: number, accountType: 'user' | 'admin' = 'user') {
-    
+  async generate2FASecret(
+    userId: number,
+    accountType: 'user' | 'admin' = 'user',
+  ) {
     const repo = this.getRepo(accountType);
 
     const account = await repo.findOneBy({
@@ -133,9 +117,7 @@ export class AuthService {
     });
 
     if (!account) {
-      throw new BadRequestException(
-        'Account not found',
-      );
+      throw new BadRequestException('Account not found');
     }
 
     const secret = generateSecret();
@@ -162,102 +144,74 @@ export class AuthService {
   // ----------------------------------------------------------------
   // Verify 2FA
   // ----------------------------------------------------------------
-
   async verify2FA(
-    data: any,
+    data: Verify2FAPayload,
     userId: number,
     token: string,
-    accountType: 'user' | 'admin' = 'user'
+    accountType: 'user' | 'admin' = 'user',
   ) {
     const repo = this.getRepo(accountType);
-
     const account = await repo.findOne({
       where: { id: userId },
-      relations: ['roles', 'roles.permissions'], // Needed so generateToken has permissions!
+      relations: ['roles', 'roles.permissions'],
     });
 
     if (!account || !account.twoFactorSecret) {
-      throw new UnauthorizedException(
-        '2FA not initialized',
-      );
+      throw new UnauthorizedException('2FA not initialized');
     }
 
-    const result = await verify({
-      secret: account.twoFactorSecret,
-      token,
-    });
-
-    if (!result.valid) {
-      throw new UnauthorizedException(
-        'Invalid 2FA token',
-      );
+    const result = await verify({ secret: account.twoFactorSecret, token });
+    if (!result) {
+      throw new UnauthorizedException('Invalid 2FA token');
     }
 
-    await repo.update(userId, {
-      isTwoFactorEnabled: true,
-    });
+    await repo.update(userId, { isTwoFactorEnabled: true });
 
-    this.deviceService.checkAndAlert(
-      account.id, 
-      accountType, 
-      account.email, 
-      data.ip, 
-      data.userAgent
-    ).catch(err => console.error('Device check failed', err));
+    this.deviceService
+      .checkAndAlert(
+        account.id,
+        accountType,
+        account.email,
+        data.ip,
+        data.userAgent,
+      )
+      .catch((err) => console.error('Device check failed', err));
 
-    return await generateToken(account);
+    return await this.generateTokens(account);
   }
 
   // ----------------------------------------------------------------
   // Forgot Password
   // ----------------------------------------------------------------
-
   async forgotPassword(email: string, accountType: 'user' | 'admin' = 'user') {
     const repo = this.getRepo(accountType);
+    const account = await repo.findOneBy({ email });
 
-    const account = await repo.findOneBy({
-      email,
-    });
+    if (!account) return { message: 'If email exists, code sent' };
 
-    if (!account) {
-      return {
-        message: 'If email exists, code sent',
-      };
-    }
-
-    const code = crypto
-      .randomBytes(3)
-      .toString('hex');
-
-    const expires = new Date(
-      Date.now() + 15 * 60 * 1000,
-    );
-
+    const code = crypto.randomBytes(3).toString('hex');
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
 
     await repo.update(account.id, {
       passwordResetCode: code,
       passwordResetExpires: expires,
     });
 
-    this.mailService.sendPasswordResetEmail(account.email, code);
+    const isDev = this.configService.get<string>('NODE_ENV') === 'development';
 
-    // Return code if in development (to make debugging easier)
-    return (this.appService.getNodeEnv() == "development") ? {
-      message: 'Reset code generated',
-      email,
-      code
-    } : {
-      message: 'Reset code generated',
-    };
+    return isDev
+      ? { message: 'Reset code generated', email, code }
+      : { message: 'Reset code generated' };
   }
 
   // ----------------------------------------------------------------
   // Reset Password
   // ----------------------------------------------------------------
-
-  async resetPassword(data: any, accountType: 'user' | 'admin' = 'user') {
+  async resetPassword(
+    data: ResetPasswordDto,
+    accountType: 'user' | 'admin' = 'user',
+  ) {
     const repo = this.getRepo(accountType);
-
     const account = await repo.findOneBy({
       email: data.email,
       passwordResetCode: data.code,
@@ -268,15 +222,10 @@ export class AuthService {
       !account.passwordResetExpires ||
       account.passwordResetExpires < new Date()
     ) {
-      throw new BadRequestException(
-        'Invalid or expired code',
-      );
+      throw new BadRequestException('Invalid or expired code');
     }
 
-    const hashedPassword = await bcrypt.hash(
-      data.newPassword,
-      10,
-    );
+    const hashedPassword = await bcrypt.hash(data.newPassword, 10);
 
     await repo.update(account.id, {
       password: hashedPassword,
@@ -284,8 +233,45 @@ export class AuthService {
       passwordResetExpires: null,
     });
 
-    return {
-      message: 'Password updated successfully',
+    return { message: 'Password updated successfully' };
+  }
+
+  // ----------------------------------------------------------------
+  // Generate JWT Token
+  // ----------------------------------------------------------------
+  async generateTokens(account: User | Admin) {
+    // Force TypeScript to recognize the structure gracefully without "any"
+    const accountWithRoles = account as unknown as AccountWithRoles;
+
+    const permissions: string[] = accountWithRoles.roles
+      ? accountWithRoles.roles
+          .flatMap((r) => r.permissions ?? [])
+          .map((p) => p?.name)
+          .filter((name): name is string => !!name)
+      : [];
+
+    const payload = {
+      sub: account.id,
+      email: account.email,
+      type: this.checkAdminOrUser(account),
+      permissions: Array.from(new Set(permissions)),
     };
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: this.jwtConf.accessSecret,
+      expiresIn: this.jwtConf.accessExpiry,
+    } as JwtSignOptions);
+
+    const refreshToken = await this.jwtService.signAsync({ sub: account.id }, {
+      secret: this.jwtConf.refreshSecret,
+      expiresIn: this.jwtConf.refreshExpiry,
+    } as JwtSignOptions);
+
+    return { accessToken, refreshToken };
+  }
+
+  // Moved inside the class as a private method
+  private checkAdminOrUser(account: User | Admin): string {
+    return account instanceof Admin ? 'admin' : 'user';
   }
 }

@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('permissions')
 export class Permission {
@@ -10,4 +10,8 @@ export class Permission {
 
   @Column({ nullable: true })
   description: string;
+}
+
+export interface PermissionEntity {
+  name: string;
 }

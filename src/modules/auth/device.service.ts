@@ -5,10 +5,11 @@ import { AccountDevice } from './entities/account-device.entity';
 import { MailService } from '../mail/mail.service';
 import { UAParser } from 'ua-parser-js';
 import * as geoip from 'geoip-lite';
+import { getErrorMessage } from 'src/utils/error';
 
 @Injectable()
 export class DeviceService {
-  private readonly logger = new Logger(DeviceService.name); 
+  private readonly logger = new Logger(DeviceService.name);
   constructor(
     @InjectRepository(AccountDevice)
     private deviceRepo: Repository<AccountDevice>,
@@ -65,15 +66,22 @@ export class DeviceService {
         await this.deviceRepo.save(newDevice);
 
         // Fire the Warning Email
-        const location = city !== 'Unknown City' ? `${city}, ${country}` : 'an Unknown Location';
+        const location =
+          city !== 'Unknown City'
+            ? `${city}, ${country}`
+            : 'an Unknown Location';
         await this.mailService.sendNewDeviceAlert(email, location, browser, os);
-        
-        this.logger.log(`New device alert triggered for ${email} (${browser} on ${os})`);
+
+        this.logger.log(
+          `New device alert triggered for ${email} (${browser} on ${os})`,
+        );
       }
     } catch (error) {
       // Catch errors so the background task doesn't crash the microservice
-      this.logger.error(`Failed to process device check for ${email}`, error.stack);
+      this.logger.error(
+        `Failed to process device check for ${email}`,
+        getErrorMessage(error),
+      );
     }
   }
-
 }
