@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('account_devices')
 export class AccountDevice {
@@ -15,10 +21,10 @@ export class AccountDevice {
   ipAddress: string;
 
   @Column()
-  browser: string; 
+  browser: string;
 
   @Column()
-  os: string; 
+  os: string;
 
   @Column({ nullable: true })
   country: string;

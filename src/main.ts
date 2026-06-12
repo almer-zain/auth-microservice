@@ -1,145 +1,108 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { VersioningType } from '@nestjs/common';
 
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import session from 'express-session';
-import { doubleCsrf } from 'csrf-csrf';
-import { AppService } from './app.service';
 import { setupGracefulShutdown } from 'nestjs-graceful-shutdown';
 import compression from 'compression';
+import hpp from 'hpp';
+import { Application } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Get ConfigService to replace the old AppService
+  const configService = app.get(ConfigService);
 
-  // Get the ConfigService instance from the app
-  const appService = app.get(AppService); 
-
-  const nodeEnv = appService.getNodeEnv();
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
   const isProd = nodeEnv === 'production';
-  
-   /**
-   * When the app is behind a proxy (Nginx, Cloudflare, AWS ELB, etc), 
-   * we must trust the proxy to correctly handle 'secure' cookies 
-   * and get the real client IP for rate limiting.
+
+  // Enable API Versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1', // All routes default to /v1/
+  });
+
+  /**
+   * Proxy Security
+   * Trust proxy is required for rate limiting and secure cookies behind Nginx/Cloudflare
    */
+
   if (isProd) {
-    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+    // 2. Cast the instance as an Express Application
+    const expressApp = app.getHttpAdapter().getInstance() as Application;
+
+    expressApp.set('trust proxy', 1);
   }
 
-  // JSON Compression
+  // Performance: Gzip Compression
   app.use(compression());
 
-  // Helmet
+  // Security: Helmet (CSP, HSTS, etc.)
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: isProd
-          ? 
-            {
-              // Productions
+          ? {
               defaultSrc: ["'self'"],
               styleSrc: ["'self'"],
               scriptSrc: ["'self'"],
-              imgSrc: ["'self'", "data:"],
+              imgSrc: ["'self'", 'data:'],
               objectSrc: ["'none'"],
               baseUri: ["'self'"],
               frameAncestors: ["'none'"],
             }
-          : 
-            {
-              // Dev (Swagger Compatibility)
+          : {
               defaultSrc: ["'self'"],
               styleSrc: ["'self'", "'unsafe-inline'"],
-              scriptSrc: ["'self'", "https:", "'unsafe-inline'"],
-              imgSrc: ["'self'", "data:", "validator.swagger.io"],
+              scriptSrc: ["'self'", 'https:', "'unsafe-inline'"],
+              imgSrc: ["'self'", 'data:', 'validator.swagger.io'],
             },
       },
-    })
-  );
-  
-  // CORS
-  app.enableCors({
-    origin: appService.getFrontendUrl(),
-    credentials: true,  
-  });
-
-  // Cookies
-  app.use(cookieParser());
-  const cookieSecret = appService.getCookieSecret();
-  const cookieMaxAge = appService.getCookieMaxAge()
-  
-
-  // Initialize HTTP sessions
-  const cookieSaveUninitialized = appService.getCookieSaveUninitialized()
-  const cookieResave = appService.getCookieResave()
-  app.use(
-    session({
-      secret: cookieSecret,
-      resave: cookieResave,
-      saveUninitialized: cookieSaveUninitialized,
-      cookie: { 
-        sameSite: 'lax',
-        httpOnly: true, 
-        secure: isProd,
-        maxAge: cookieMaxAge // 24h expiry
-      }, 
     }),
   );
 
-
-  // Configure CSRF (using csrf-csrf recommended by NestJS docs)
-  const csrfSecret = appService.getCsrfSecret()!;
-  const { 
-      invalidCsrfTokenError,
-      generateCsrfToken,
-      validateRequest,
-      doubleCsrfProtection
-   } = doubleCsrf({
-    getSecret: (req) => csrfSecret,
-    getSessionIdentifier: (req) => req.session.id, // return the requests unique identifier
-    cookieName: isProd ? "__Host-psifi.x-csrf-token" : "psifi-csrf-token",
-    cookieOptions: {
-      sameSite: "lax",
-      path: "/",
-      secure: isProd,
-      httpOnly: true,
-      maxAge: cookieMaxAge,
-    },
-    size: 32, 
-    ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-    getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
+  // Security: CORS
+  app.enableCors({
+    origin: configService.get<string>('FRONTEND_URL'),
+    credentials: true,
   });
-  app.use(doubleCsrfProtection);
 
-  // HPP (HTTP Parameter Pollution)
-  const hpp = require('hpp');
-  app.use(hpp({ whitelist: ['filter', 'tags'] }));
+  // Security: Prevent HTTP Parameter Pollution
+  app.use(hpp());
 
-  // Global Pipes (Validation)
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,               // Strip away fields that aren't in the DTO
-    forbidNonWhitelisted: true,    // Throw error if extra fields are sent
-    transform: true,               // Automatically convert strings to numbers/booleans
-  }));
+  app.use(cookieParser());
 
-  // Docs
-  const config = new DocumentBuilder()
-    .setTitle('Cats example')
-    .setDescription('The cats API description')
-    .setVersion('1.0')
-    .addTag('cats')
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  // Global Validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
-  // Graceful shutdown
+  // Swagger Documentation (Enabled only in non-production)
+  if (!isProd) {
+    const config = new DocumentBuilder()
+      .setTitle('My API')
+      .setDescription('API Description')
+      .setVersion('1.0')
+      .addBearerAuth() // Adds JWT support to Swagger UI
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
+  }
+
+  // Setup Graceful Shutdown
   setupGracefulShutdown({ app });
-    
-  await app.listen(process.env.PORT ?? 3000);
 
+  const port = configService.get<number>('PORT', 3000);
+  await app.listen(port);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

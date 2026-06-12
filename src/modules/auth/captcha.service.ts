@@ -1,6 +1,13 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppService } from 'src/app.service';
+
+// 1. Define the exact shape of the Cloudflare API response
+interface TurnstileResponse {
+  success: boolean;
+  'error-codes'?: string[];
+  challenge_ts?: string;
+  hostname?: string;
+}
 
 @Injectable()
 export class CaptchaService {
@@ -8,31 +15,24 @@ export class CaptchaService {
   private isEnabled: boolean;
   private secret: string;
 
-  constructor(
-    private configService: ConfigService,
-    private appService: AppService
-  ) {
-    // Check if CAPTCHA is enabled in .env
-    this.isEnabled = this.appService.getCaptchaEnabled();
-    this.secret = this.appService.getCaptchaSecret();
+  constructor(private readonly configService: ConfigService) {
+    this.isEnabled = this.configService.get<boolean>('CAPTCHA_ENABLED', true);
+    this.secret = this.configService.get<string>('CAPTCHA_SECRET', '');
   }
 
   async verify(token?: string, ip?: string): Promise<void> {
-    // 1. If feature is turned off, just skip!
     if (!this.isEnabled) return;
 
-    // 2. If enabled but no token was sent by frontend
     if (!token) {
       throw new BadRequestException('CAPTCHA token is required');
     }
 
     try {
-      // 3. Verify with Cloudflare Turnstile (or swap URL for Google reCAPTCHA)
       const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
       const formData = new URLSearchParams();
       formData.append('secret', this.secret);
       formData.append('response', token);
-      if (ip) formData.append('remoteip', ip); // Optional but good for security
+      if (ip) formData.append('remoteip', ip);
 
       const response = await fetch(url, {
         method: 'POST',
@@ -42,15 +42,24 @@ export class CaptchaService {
         },
       });
 
-      const data = await response.json();
+      // 2. Safely cast the response to our defined Interface
+      const data = (await response.json()) as TurnstileResponse;
 
       if (!data.success) {
-        this.logger.warn(`CAPTCHA failed: ${JSON.stringify(data['error-codes'])}`);
+        // 3. Typescript now knows 'error-codes' is an array of strings
+        this.logger.warn(
+          `CAPTCHA failed: ${JSON.stringify(data['error-codes'])}`,
+        );
         throw new BadRequestException('Failed CAPTCHA verification');
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      // 4. Type error as unknown
       if (error instanceof BadRequestException) throw error;
-      this.logger.error('CAPTCHA verification service error', error);
+
+      // Handle the unknown error safely
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error('CAPTCHA verification service error', errorMessage);
       throw new BadRequestException('CAPTCHA verification unavailable');
     }
   }

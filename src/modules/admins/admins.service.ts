@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Admin } from './entities/admin.entity';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import * as bcrypt from 'bcrypt';
+import { Role } from '../roles/entities/role.entity';
 
 @Injectable()
 export class AdminsService {
@@ -17,8 +22,8 @@ export class AdminsService {
     const { password, roleIds, ...rest } = createAdminDto;
 
     // Check for existing email/username
-    const existing = await this.adminsRepository.findOne({ 
-        where: [{ email: rest.email }, { username: rest.username }] 
+    const existing = await this.adminsRepository.findOne({
+      where: [{ email: rest.email }, { username: rest.username }],
     });
     if (existing) throw new ConflictException('Admin already exists');
 
@@ -26,7 +31,7 @@ export class AdminsService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Map roleIds [1, 2] to [{id: 1}, {id: 2}] for TypeORM ManyToMany saving
-    const roles = roleIds ? roleIds.map(id => ({ id })) : [];
+    const roles = roleIds ? roleIds.map((id) => ({ id })) : [];
 
     const newAdmin = this.adminsRepository.create({
       ...rest,
@@ -39,15 +44,17 @@ export class AdminsService {
 
   async findAll(): Promise<Admin[]> {
     // Load the roles and their permissions
-    return this.adminsRepository.find({ relations: ['roles', 'roles.permissions'] });
+    return this.adminsRepository.find({
+      relations: ['roles', 'roles.permissions'],
+    });
   }
 
   async findOne(id: number): Promise<Admin> {
-    const admin = await this.adminsRepository.findOne({ 
+    const admin = await this.adminsRepository.findOne({
       where: { id },
       relations: ['roles', 'roles.permissions'],
     });
-    
+
     if (!admin) throw new NotFoundException(`Admin #${id} not found`);
     return admin;
   }
@@ -62,10 +69,14 @@ export class AdminsService {
     }
 
     // If updating roles, map them
-    if (roleIds) {
-      admin.roles = roleIds.map(roleId => ({ id: roleId })) as any;
-    }
 
+    if (roleIds) {
+      admin.roles = roleIds.map((roleId) => {
+        const role = new Role();
+        role.id = roleId;
+        return role;
+      });
+    }
     // Merge standard properties
     Object.assign(admin, rest);
 
