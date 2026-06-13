@@ -20,14 +20,12 @@ export class UsersService {
     return await this.usersRepository.save(newUser);
   }
 
-
   // ----------------------------------------------------------------
   // Find All User
   // ----------------------------------------------------------------
   async findAll(): Promise<User[]> {
     return await this.usersRepository.find();
   }
-
 
   // ----------------------------------------------------------------
   // Find One User
@@ -40,7 +38,6 @@ export class UsersService {
     return user;
   }
 
-
   // ----------------------------------------------------------------
   // Update User
   // ----------------------------------------------------------------
@@ -49,7 +46,6 @@ export class UsersService {
     const updatedUser = Object.assign(user, updateUserDto);
     return await this.usersRepository.save(updatedUser);
   }
-
 
   // ----------------------------------------------------------------
   // Remove User

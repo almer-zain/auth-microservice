@@ -1,18 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform, TransformFnParams } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { IsEmail, IsString, MinLength } from 'class-validator';
-import { Match } from 'src/utils/auth-decorator';
+import { Match } from 'src/utils/auth-decorator.util';
+import { transformEmail, transformTrim } from 'src/utils/sanitize.util';
 
 export class ResetPasswordDto {
   @ApiProperty()
   @IsEmail()
-  @Transform(({ value }: TransformFnParams) =>
-    typeof value === 'string' ? value.trim() : (value as unknown),
-  )
+  @Transform(transformEmail) // Normalizes email consistently
   email: string;
 
   @ApiProperty()
   @IsString()
+  @Transform(transformTrim) // Cleans whitespace from authentication code paste operations
   code: string;
 
   @ApiProperty()
@@ -23,7 +23,8 @@ export class ResetPasswordDto {
   @ApiProperty()
   @IsString()
   @MinLength(8)
-  @Match('password', {
+  @Match('newPassword', {
+    // Changed target string from 'password' to 'newPassword'
     message: 'Passwords do not match',
   })
   confirmPassword: string;

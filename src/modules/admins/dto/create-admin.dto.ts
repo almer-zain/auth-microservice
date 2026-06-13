@@ -1,29 +1,46 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, IsNotEmpty, IsArray, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsNotEmpty,
+  IsArray,
+  IsOptional,
+  IsNumber,
+} from 'class-validator';
+import {
+  transformTrim,
+  transformSanitizeHtml,
+  transformEmail,
+} from 'src/utils/sanitize.util'; // Adjust path to match your layout
 
 export class CreateAdminDto {
   @ApiProperty()
   @IsEmail()
+  @Transform(transformEmail) // Normalizes to lowercase and trims
   email: string;
 
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
+  @Transform(transformTrim) // Standard string trimming
   username: string;
 
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
+  @Transform(transformSanitizeHtml) // Strips out malicious HTML/Script tags
   usernameDisplay: string;
 
   @ApiProperty()
   @IsString()
   @MinLength(8)
-  password: string;
+  password: string; // Passwords should not be sanitized or trimmed to allow special characters/spaces
 
-  // Expecting an array of Role IDs to assign to the admin
-  @ApiProperty()
+  @ApiProperty({ type: [Number], required: false })
   @IsArray()
+  @IsNumber({}, { each: true }) // Ensures the array elements are actual numbers
   @IsOptional()
-  roleIds?: number[]; 
+  roleIds?: number[];
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform, TransformFnParams } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -7,36 +7,35 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { IsValidUsername } from 'src/utils/auth-decorator';
-import sanitize from 'sanitize-html';
+import { IsValidUsername } from 'src/utils/auth-decorator.util';
+import {
+  transformEmail,
+  transformSanitizeHtml,
+  transformTrim,
+} from 'src/utils/sanitize.util';
 
 export class RegisterDto {
   @ApiProperty()
   @IsValidUsername()
-  @Transform(({ value }: TransformFnParams) =>
-    typeof value === 'string' ? value.trim() : (value as unknown),
-  )
+  @Transform(transformTrim) // 💡 Clean & readable!
   username: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  @Transform(({ value }) =>
-    sanitize(value, { allowedTags: [], allowedAttributes: {} }).trim(),
-  )
+  @Transform(transformSanitizeHtml) // 💡 No complex nested arrow functions!
   displayUsername: string;
 
   @ApiProperty()
   @IsEmail()
-  @Transform(({ value }: TransformFnParams) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
-  )
+  @Transform(transformEmail) // 💡 Centralized email validation logic
   email: string;
 
   @ApiProperty()
   @MinLength(8)
   password: string;
 
+  @ApiProperty({ required: false })
   @IsString()
   @IsNotEmpty()
   @IsOptional()

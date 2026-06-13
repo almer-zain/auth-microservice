@@ -189,19 +189,33 @@ export class AuthService {
 
     if (!account) return { message: 'If email exists, code sent' };
 
-    const code = crypto.randomBytes(3).toString('hex');
-    const expires = new Date(Date.now() + 15 * 60 * 1000);
+    const token = crypto.randomBytes(32).toString('hex');
+
+    const shortCode = token.substring(0, 6).toUpperCase();
+
+    const expires = new Date(
+      Date.now() + this.configService.get<number>('EXPIRY_EMAIL')!,
+    );
 
     await repo.update(account.id, {
-      passwordResetCode: code,
+      passwordResetCode: token, // Store the full long token
       passwordResetExpires: expires,
     });
 
-    const isDev = this.configService.get<string>('NODE_ENV') === 'development';
+    // Construct the Frontend URL
+    // Ensure 'FRONTEND_URL' is in your .env (e.g., https://my-app.com)
+    const frontendUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:3000',
+    );
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}&email=${email}`;
 
+    await this.mailService.sendPasswordResetEmail(email, shortCode, resetUrl);
+
+    const isDev = this.configService.get<string>('NODE_ENV') === 'development';
     return isDev
-      ? { message: 'Reset code generated', email, code }
-      : { message: 'Reset code generated' };
+      ? { message: 'Reset link generated', token, resetUrl }
+      : { message: 'Reset link sent' };
   }
 
   // ----------------------------------------------------------------

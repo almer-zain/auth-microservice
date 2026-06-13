@@ -6,18 +6,19 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { PermissionService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 
-@Controller('permission')
+@Controller('permissions') // Plural is standard REST practice
 export class PermissionController {
   constructor(private readonly permissionService: PermissionService) {}
 
   @Post()
-  create(@Body() createPermissionDto: CreatePermissionDto) {
-    return this.permissionService.create(createPermissionDto);
+  create(@Body() dto: CreatePermissionDto) {
+    return this.permissionService.create(dto);
   }
 
   @Get()
@@ -26,20 +27,20 @@ export class PermissionController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.permissionService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.permissionService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
-    @Body() updatePermissionDto: UpdatePermissionDto,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePermissionDto,
   ) {
-    return this.permissionService.update(+id, updatePermissionDto);
+    return this.permissionService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.permissionService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.permissionService.remove(id);
   }
 }
