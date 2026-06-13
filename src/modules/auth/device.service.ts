@@ -5,7 +5,7 @@ import { AccountDevice } from './entities/account-device.entity';
 import { MailService } from '../mail/mail.service';
 import { UAParser } from 'ua-parser-js';
 import * as geoip from 'geoip-lite';
-import { getErrorMessage } from 'src/utils/error';
+import { getErrorMessage } from 'src/utils/error.util';
 
 @Injectable()
 export class DeviceService {

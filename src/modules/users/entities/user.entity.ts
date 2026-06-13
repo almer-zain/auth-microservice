@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+import { Entity } from 'typeorm';
 import { BaseAccount } from 'src/common/entities/base-account.abstract';
 
 @Entity('users')

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from 'src/common/types/jwt-types';
-import { getErrorMessage } from 'src/utils/error';
+import { getErrorMessage } from 'src/utils/error.util';
 
 // Define the shape of the data coming through the microservice
 export interface AuthenticatedRpcData {
