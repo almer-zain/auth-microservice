@@ -1,7 +1,13 @@
 // guards/permissions.guard.ts
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { REQUIRE_PERMISSIONS } from 'src/common/decorator/permissions.decorator';
+import { JwtPayload } from 'src/common/types/jwt-types';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -15,8 +21,10 @@ export class PermissionsGuard implements CanActivate {
 
     if (!requiredPermissions) return true;
 
-    const { user } = context.switchToHttp().getRequest(); 
-    // Note: 'user' here is the payload from your JwtStrategy
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user: JwtPayload }>();
+    const user = request.user;
 
     if (!user || !user.permissions) {
       throw new ForbiddenException('No permissions assigned');
