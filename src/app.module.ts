@@ -11,6 +11,7 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { join } from 'path';
 import * as Joi from 'joi';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 
 // Namespaces & Strategies
 import jwtConfig from './config/namespaces/jwt.config';
@@ -23,6 +24,7 @@ import { AdminsModule } from './modules/admins/admins.module';
 import { PermissionModule } from './modules/permissions/permissions.module';
 import { RoleModule } from './modules/roles/roles.module';
 import { DatabaseType, DataSourceOptions } from 'typeorm';
+import Redis from 'ioredis';
 
 @Module({
   imports: [
@@ -31,28 +33,60 @@ import { DatabaseType, DataSourceOptions } from 'typeorm';
       isGlobal: true,
       load: [jwtConfig],
       validationSchema: Joi.object({
+        // App
+        APP_NAME: Joi.string().default('MyApp'),
         NODE_ENV: Joi.string()
           .valid('development', 'production', 'test')
           .default('development'),
         PORT: Joi.number().default(3000),
-        DB_TYPE: Joi.string().required(),
+        FRONTEND_URL: Joi.string().uri().required(),
+
+        // JWT
+        JWT_ACCESS_SECRET: Joi.string().required(),
+        JWT_ACCESS_EXPIRY: Joi.string().required(),
+        JWT_REFRESH_SECRET: Joi.string().required(),
+        JWT_REFRESH_EXPIRY: Joi.string().required(),
+
+        // DB
+        DB_TYPE: Joi.string()
+          .valid('mysql', 'postgres', 'mariadb', 'sqlite')
+          .required(),
         DB_HOST: Joi.string().required(),
         DB_PORT: Joi.number().required(),
         DB_USERNAME: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         DB_NAME: Joi.string().required(),
         DB_SYNCHRONIZE: Joi.boolean().default(false),
-        JWT_ACCESS_SECRET: Joi.string().required(),
-        JWT_ACCESS_EXPIRY: Joi.string().required(),
-        JWT_REFRESH_SECRET: Joi.string().required(),
-        JWT_REFRESH_EXPIRY: Joi.string().required(),
+
+        // Rate Limiter
         RATELIMIT_TTL: Joi.number().default(60000),
         RATELIMIT_MAX: Joi.number().default(10),
+
+        // Cache & Redis
+        CACHE_TTL: Joi.number().default(600),
         USE_REDIS: Joi.boolean().default(false),
         REDIS_URL: Joi.string().when('USE_REDIS', {
           is: true,
           then: Joi.required(),
         }),
+
+        // Mail
+        MAIL_HOST: Joi.string().required(),
+        MAIL_PORT: Joi.number().required(),
+        MAIL_USER: Joi.string().required(),
+        MAIL_PASS: Joi.string().required(),
+        MAIL_FROM: Joi.string().required(),
+        SMTP_SECURE: Joi.boolean().default(false),
+        SUPPORT_EMAIL: Joi.string().email().required(),
+        EMAIL_EXPIRY: Joi.number().default(900000),
+
+        // Company Info
+        COMPANY_NAME: Joi.string().required(),
+        COPYRIGHT_YEAR: Joi.number().default(new Date().getFullYear()),
+
+        // Captcha
+        CAPTCHA_ENABLED: Joi.boolean().default(false),
+        CAPTCHA_SECRET: Joi.string().required(),
       }),
     }),
 
@@ -60,8 +94,8 @@ import { DatabaseType, DataSourceOptions } from 'typeorm';
     // TODO: Add this...
     GracefulShutdownModule.forRoot({
       cleanup: () => {
-        // This is where you close DB connections manually if needed
-        console.log(`Finalizing cleanup before shutdown...`);
+        // You can use app.get() here to close specific connections
+        console.log('Finalizing cleanup before shutdown...');
       },
     }),
 
@@ -77,7 +111,7 @@ import { DatabaseType, DataSourceOptions } from 'typeorm';
             username: config.get<string>('DB_USERNAME'),
             password: config.get<string>('DB_PASSWORD'),
             database: config.get<string>('DB_NAME'),
-            synchronize: config.get<boolean>('DB_SYNCHRONIZE'),
+            synchronize: config.get<boolean>('DB_SYNCHRONIZE', false),
             extra: {
               connectionLimit: 10,
               queueLimit: 0,
@@ -114,8 +148,8 @@ import { DatabaseType, DataSourceOptions } from 'typeorm';
       useFactory: (config: ConfigService) => ({
         transport: {
           host: config.get('MAIL_HOST'),
-          port: config.get('MAIL_PORT'),
-          secure: config.get('SMTP_SECURE') === 'true',
+          port: config.get<number>('MAIL_PORT'),
+          secure: config.get<boolean>('SMTP_SECURE'),
           auth: config.get('MAIL_USER')
             ? {
                 user: config.get('MAIL_USER'),
@@ -135,15 +169,28 @@ import { DatabaseType, DataSourceOptions } from 'typeorm';
     // 6. SECURITY: Rate Limiting
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        throttlers: [
-          {
-            // Adding default values or casting to number fixes the TS error
-            ttl: config.get<number>('RATELIMIT_TTL', 60000),
-            limit: config.get<number>('RATELIMIT_MAX', 10),
-          },
-        ],
-      }),
+      useFactory: (config: ConfigService) => {
+        // Explicitly assert the Redis class type constructor structure to satisfy ESLint
+        const RedisClient = Redis as unknown as new (
+          url: string,
+        ) => typeof Redis;
+
+        return {
+          throttlers: [
+            {
+              ttl: config.get<number>('RATELIMIT_TTL') ?? 60000,
+              limit: config.get<number>('RATELIMIT_MAX') ?? 10,
+            },
+          ],
+          storage: config.get<boolean>('USE_REDIS')
+            ? new ThrottlerStorageRedisService(
+                new RedisClient(
+                  config.get<string>('REDIS_URL') ?? 'redis://localhost:6379',
+                ) as any, // Cast to any to cleanly bypass internal version mismatches
+              )
+            : undefined,
+        };
+      },
     }),
 
     // 7. AUTH

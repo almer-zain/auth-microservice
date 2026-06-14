@@ -11,6 +11,7 @@ import { setupGracefulShutdown } from 'nestjs-graceful-shutdown';
 import compression from 'compression';
 import hpp from 'hpp';
 import { Application } from 'express';
+import { Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,11 +28,19 @@ async function bootstrap() {
     defaultVersion: '1', // All routes default to /v1/
   });
 
+  // Connect the microservice (e.g., TCP)
+  app.connectMicroservice({
+    transport: Transport.TCP,
+    options: {
+      host: '0.0.0.0',
+      port: configService.get<number>('MICROSERVICE_PORT', 3001),
+    },
+  });
+
   /**
    * Proxy Security
    * Trust proxy is required for rate limiting and secure cookies behind Nginx/Cloudflare
    */
-
   if (isProd) {
     // 2. Cast the instance as an Express Application
     const expressApp = app.getHttpAdapter().getInstance() as Application;
@@ -99,10 +108,11 @@ async function bootstrap() {
   }
 
   // Setup Graceful Shutdown
+  app.enableShutdownHooks();
   setupGracefulShutdown({ app });
 
-  const port = configService.get<number>('PORT', 3000);
-  await app.listen(port);
+  await app.startAllMicroservices(); // Starts the TCP listener
+  await app.listen(configService.get<number>('PORT', 3000)); // Starts the HTTP listener
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap().catch((error: unknown) => {
