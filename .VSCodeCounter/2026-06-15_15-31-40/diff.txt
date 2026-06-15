@@ -1,0 +1,43 @@
+Date : 2026-06-15 15:31:40
+Directory : /home/generalegg/Project-P/blog-be/src
+Total : 11 files,  -17484 codes, -25 comments, -23 blanks, all -17532 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| Markdown           |          1 |         -4 |          0 |         -1 |         -5 |
+| TypeScript         |          1 |        -24 |          0 |         -6 |        -30 |
+| JSON with Comments |          1 |        -25 |          0 |         -1 |        -26 |
+| Dotenv             |          1 |        -32 |        -24 |         -7 |        -63 |
+| JavaScript         |          1 |        -33 |         -1 |         -2 |        -36 |
+| JSON               |          6 |    -17,366 |          0 |         -6 |    -17,372 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                    | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                       |         11 |    -17,484 |        -25 |        -23 |    -17,532 |
+| ..                                                      |         11 |    -17,484 |        -25 |        -23 |    -17,532 |
+| .. (Files)                                              |          9 |    -17,451 |        -25 |        -16 |    -17,492 |
+| ../test                                                 |          2 |        -33 |          0 |         -7 |        -40 |
++---------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                | language           | code       | comment    | blank      | total      |
++---------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| /home/generalegg/Project-P/blog-be/.example.env         | Dotenv             |        -32 |        -24 |         -7 |        -63 |
+| /home/generalegg/Project-P/blog-be/.prettierrc          | JSON               |         -4 |          0 |         -1 |         -5 |
+| /home/generalegg/Project-P/blog-be/README.md            | Markdown           |         -4 |          0 |         -1 |         -5 |
+| /home/generalegg/Project-P/blog-be/eslint.config.mjs    | JavaScript         |        -33 |         -1 |         -2 |        -36 |
+| /home/generalegg/Project-P/blog-be/nest-cli.json        | JSON               |        -14 |          0 |         -1 |        -15 |
+| /home/generalegg/Project-P/blog-be/package-lock.json    | JSON               |    -17,209 |          0 |         -1 |    -17,210 |
+| /home/generalegg/Project-P/blog-be/package.json         | JSON               |       -126 |          0 |         -1 |       -127 |
+| /home/generalegg/Project-P/blog-be/test/app.e2e-spec.ts | TypeScript         |        -24 |          0 |         -6 |        -30 |
+| /home/generalegg/Project-P/blog-be/test/jest-e2e.json   | JSON               |         -9 |          0 |         -1 |        -10 |
+| /home/generalegg/Project-P/blog-be/tsconfig.build.json  | JSON               |         -4 |          0 |         -1 |         -5 |
+| /home/generalegg/Project-P/blog-be/tsconfig.json        | JSON with Comments |        -25 |          0 |         -1 |        -26 |
+| Total                                                   |                    |    -17,484 |        -25 |        -23 |    -17,532 |
++---------------------------------------------------------+--------------------+------------+------------+------------+------------+

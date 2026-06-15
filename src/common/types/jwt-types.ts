@@ -6,3 +6,8 @@ export interface JwtPayload {
   iat?: number; // Issued at (auto-added by JWT)
   exp?: number; // Expires at (auto-added by JWT)
 }
+
+import { Request } from 'express';
+export interface RequestWithUser extends Request {
+  user: JwtPayload;
+}

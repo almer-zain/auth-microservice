@@ -17,18 +17,18 @@ import {
 export class RegisterDto {
   @ApiProperty()
   @IsValidUsername()
-  @Transform(transformTrim) // 💡 Clean & readable!
+  @Transform(transformTrim)
   username: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  @Transform(transformSanitizeHtml) // 💡 No complex nested arrow functions!
+  @Transform(transformSanitizeHtml)
   displayUsername: string;
 
   @ApiProperty()
   @IsEmail()
-  @Transform(transformEmail) // 💡 Centralized email validation logic
+  @Transform(transformEmail)
   email: string;
 
   @ApiProperty()

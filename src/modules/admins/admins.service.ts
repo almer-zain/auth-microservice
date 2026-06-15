@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,9 +11,12 @@ import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../roles/entities/role.entity';
+import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class AdminsService {
+  private readonly logger = new Logger(AdminsService.name);
+
   constructor(
     @InjectRepository(Admin)
     private adminsRepository: Repository<Admin>,
@@ -25,7 +29,11 @@ export class AdminsService {
     const existing = await this.adminsRepository.findOne({
       where: [{ email: rest.email }, { username: rest.username }],
     });
-    if (existing) throw new ConflictException('Admin already exists');
+
+    if (existing) {
+      this.logger.warn(`Admin creation failed: ${rest.email} already exists`);
+      throw new ConflictException('Admin already exists');
+    }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -39,14 +47,34 @@ export class AdminsService {
       roles,
     });
 
-    return this.adminsRepository.save(newAdmin);
+    const savedAdmin = await this.adminsRepository.save(newAdmin);
+    this.logger.log(`Admin created successfully: ID ${savedAdmin.id}`);
+    return savedAdmin;
   }
 
-  async findAll(): Promise<Admin[]> {
-    // Load the roles and their permissions
-    return this.adminsRepository.find({
+  async findAll(query: PaginationQueryDto) {
+    const { page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.adminsRepository.findAndCount({
       relations: ['roles', 'roles.permissions'],
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
     });
+
+    this.logger.log(`Retrieved ${items.length} admins (Total: ${total})`);
+
+    return {
+      data: items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
   async findOne(id: number): Promise<Admin> {
@@ -55,7 +83,10 @@ export class AdminsService {
       relations: ['roles', 'roles.permissions'],
     });
 
-    if (!admin) throw new NotFoundException(`Admin #${id} not found`);
+    if (!admin) {
+      this.logger.error(`Admin lookup failed: ID ${id} not found`);
+      throw new NotFoundException(`Admin #${id} not found`);
+    }
     return admin;
   }
 
@@ -78,9 +109,12 @@ export class AdminsService {
       });
     }
     // Merge standard properties
-    Object.assign(admin, rest);
 
-    return this.adminsRepository.save(admin);
+    Object.assign(admin, rest);
+    const updated = await this.adminsRepository.save(admin);
+
+    this.logger.log(`Admin updated: ID ${id}`);
+    return updated;
   }
 
   async remove(id: number): Promise<void> {
@@ -88,5 +122,6 @@ export class AdminsService {
     if (result.affected === 0) {
       throw new NotFoundException(`Admin #${id} not found`);
     }
+    this.logger.log(`Admin deleted: ID ${id}`);
   }
 }

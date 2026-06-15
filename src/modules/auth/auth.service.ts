@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -20,14 +21,17 @@ import { CaptchaService } from './captcha.service';
 import { DeviceService } from './device.service';
 import jwtConfig from 'src/config/namespaces/jwt.config';
 
-import { Verify2FAPayload } from './auth.controller';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AccountWithRoles } from '../roles/entities/role.entity';
+import { getErrorStack } from 'src/utils/error.util';
+import { Verify2FADto } from './dto/verify-2fa.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -73,7 +77,7 @@ export class AuthService {
   // Login
   // ----------------------------------------------------------------
   async login(data: LoginDto, accountType: 'user' | 'admin' = 'user') {
-    await this.captchaService.verify(data.captchaToken);
+    await this.captchaService.verify(data.captchaToken, data.ip);
     const repo = this.getRepo(accountType);
 
     const account = await repo.findOne({
@@ -83,13 +87,15 @@ export class AuthService {
     });
 
     if (!account || !(await bcrypt.compare(data.password, account.password))) {
+      this.logger.warn(`Failed login attempt for email: ${data.email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (account.isTwoFactorEnabled) {
-      return { mfaRequired: true, userId: account.id };
+      return { mfaRequired: true, userId: account.id, accountType };
     }
 
+    // Process device check in background
     this.deviceService
       .checkAndAlert(
         account.id,
@@ -98,8 +104,14 @@ export class AuthService {
         data.ip,
         data.userAgent,
       )
-      .catch((err) => console.error('Device check failed', err));
+      .catch((error) =>
+        this.logger.error(
+          `Device check failed for ${account.email}`,
+          getErrorStack(error),
+        ),
+      );
 
+    this.logger.log(`User logged in: ${account.email}`);
     return await this.generateTokens(account);
   }
 
@@ -144,13 +156,10 @@ export class AuthService {
   // ----------------------------------------------------------------
   // Verify 2FA
   // ----------------------------------------------------------------
-  async verify2FA(
-    data: Verify2FAPayload,
-    userId: number,
-    token: string,
-    accountType: 'user' | 'admin' = 'user',
-  ) {
+  async verify2FA(data: Verify2FADto, ip: string, userAgent: string) {
+    const { userId, token, accountType = 'user' } = data;
     const repo = this.getRepo(accountType);
+
     const account = await repo.findOne({
       where: { id: userId },
       relations: ['roles', 'roles.permissions'],
@@ -160,22 +169,19 @@ export class AuthService {
       throw new UnauthorizedException('2FA not initialized');
     }
 
-    const result = await verify({ secret: account.twoFactorSecret, token });
-    if (!result) {
+    const isValid = await verify({ secret: account.twoFactorSecret, token });
+    if (!isValid) {
+      this.logger.warn(`Invalid 2FA token provided for user ID: ${userId}`);
       throw new UnauthorizedException('Invalid 2FA token');
     }
 
     await repo.update(userId, { isTwoFactorEnabled: true });
 
     this.deviceService
-      .checkAndAlert(
-        account.id,
-        accountType,
-        account.email,
-        data.ip,
-        data.userAgent,
-      )
-      .catch((err) => console.error('Device check failed', err));
+      .checkAndAlert(account.id, accountType, account.email, ip, userAgent)
+      .catch((error) =>
+        this.logger.error(`Device check failed`, getErrorStack(error)),
+      );
 
     return await this.generateTokens(account);
   }

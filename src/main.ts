@@ -12,9 +12,13 @@ import compression from 'compression';
 import hpp from 'hpp';
 import { Application } from 'express';
 import { Transport } from '@nestjs/microservices';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Use Pino as the global logger
+  app.useLogger(app.get(Logger));
 
   // Get ConfigService to replace the old AppService
   const configService = app.get(ConfigService);
@@ -111,8 +115,9 @@ async function bootstrap() {
   app.enableShutdownHooks();
   setupGracefulShutdown({ app });
 
-  await app.startAllMicroservices(); // Starts the TCP listener
-  await app.listen(configService.get<number>('PORT', 3000)); // Starts the HTTP listener
+  const port = configService.get<number>('PORT', 3000);
+  await app.listen(port);
+
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap().catch((error: unknown) => {

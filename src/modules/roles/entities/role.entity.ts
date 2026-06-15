@@ -1,7 +1,5 @@
-import {
-  Permission,
-  PermissionEntity,
-} from 'src/modules/permissions/entities/permission.entity';
+// entities/role.entity.ts
+import { Permission } from 'src/modules/permissions/entities/permission.entity';
 import {
   Column,
   Entity,
@@ -16,19 +14,16 @@ export class Role {
   id: number;
 
   @Column({ unique: true })
-  name: string; // e.g., 'super-admin', 'editor', 'customer'
+  name: string;
 
-  @ManyToMany(() => Permission, { eager: true })
-  @JoinTable()
+  @ManyToMany(() => Permission)
+  @JoinTable({ name: 'roles_permissions_permissions' }) // Explicit naming helps prevent DB confusion
   permissions: Permission[];
 }
 
-export interface RoleEntity {
-  permissions: PermissionEntity[];
-}
-
+// Used for typing req.user and Auth logic
 export interface AccountWithRoles {
   id: number;
   email: string;
-  roles?: RoleEntity[];
+  roles: Role[];
 }

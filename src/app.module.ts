@@ -25,10 +25,10 @@ import { PermissionModule } from './modules/permissions/permissions.module';
 import { RoleModule } from './modules/roles/roles.module';
 import { DatabaseType, DataSourceOptions } from 'typeorm';
 import Redis from 'ioredis';
-
+import { LoggerModule } from 'nestjs-pino';
 @Module({
   imports: [
-    // 1. CONFIGURATION (Strict Validation)
+    // CONFIGURATION (Strict Validation)
     ConfigModule.forRoot({
       isGlobal: true,
       load: [jwtConfig],
@@ -90,7 +90,19 @@ import Redis from 'ioredis';
       }),
     }),
 
-    // 2. GRACEFUL SHUTDOWN (Crucial for Production)
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { colorize: true } }
+            : undefined,
+        level: 'info',
+        // Redact sensitive information from logs
+        redact: ['req.headers.authorization', 'req.body.password'],
+      },
+    }),
+
+    // GRACEFUL SHUTDOWN (Crucial for Production)
     // TODO: Add this...
     GracefulShutdownModule.forRoot({
       cleanup: () => {
@@ -99,7 +111,7 @@ import Redis from 'ioredis';
       },
     }),
 
-    // 3. DATABASE
+    // DATABASE
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService): TypeOrmModuleOptions => {
@@ -125,7 +137,7 @@ import Redis from 'ioredis';
       },
     }),
 
-    // 4. CACHING (Redis or Memory)
+    // CACHING (Redis or Memory)
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
@@ -142,7 +154,7 @@ import Redis from 'ioredis';
       },
     }),
 
-    // 5. MAILER
+    // MAILER
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -166,7 +178,7 @@ import Redis from 'ioredis';
       }),
     }),
 
-    // 6. SECURITY: Rate Limiting
+    // SECURITY: Rate Limiting
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
@@ -186,18 +198,18 @@ import Redis from 'ioredis';
             ? new ThrottlerStorageRedisService(
                 new RedisClient(
                   config.get<string>('REDIS_URL') ?? 'redis://localhost:6379',
-                ) as any, // Cast to any to cleanly bypass internal version mismatches
+                ) as unknown as Redis,
               )
             : undefined,
         };
       },
     }),
 
-    // 7. AUTH
+    // AUTH
     JwtModule.register({}), // Handled dynamically in AuthService
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
-    // 8. APP MODULES
+    // APP MODULES
     HealthModule,
     AdminsModule,
     PermissionModule,
