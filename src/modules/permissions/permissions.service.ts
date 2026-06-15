@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,9 +9,12 @@ import { Repository } from 'typeorm';
 import { Permission } from './entities/permission.entity';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class PermissionService {
+  private readonly logger = new Logger(PermissionService.name);
+
   constructor(
     @InjectRepository(Permission)
     private readonly permissionRepo: Repository<Permission>,
@@ -20,14 +24,35 @@ export class PermissionService {
     const exists = await this.permissionRepo.findOne({
       where: { name: dto.name },
     });
-    if (exists) throw new ConflictException('Permission already exists');
+    if (exists) throw new ConflictException('Permission name already exists');
 
     const permission = this.permissionRepo.create(dto);
-    return this.permissionRepo.save(permission);
+    const saved = await this.permissionRepo.save(permission);
+
+    this.logger.log(`Permission created: ${saved.name} (ID: ${saved.id})`);
+    return saved;
   }
 
-  async findAll(): Promise<Permission[]> {
-    return this.permissionRepo.find();
+  async findAll(query: PaginationQueryDto) {
+    const { page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.permissionRepo.findAndCount({
+      skip,
+      take: limit,
+      order: { name: 'ASC' }, // Permissions usually sorted alphabetically
+    });
+
+    return {
+      data: items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
   async findOne(id: number): Promise<Permission> {
@@ -47,11 +72,15 @@ export class PermissionService {
     }
 
     Object.assign(permission, dto);
-    return this.permissionRepo.save(permission);
+    const updated = await this.permissionRepo.save(permission);
+
+    this.logger.log(`Permission updated: ID ${id}`);
+    return updated;
   }
 
   async remove(id: number): Promise<void> {
     const permission = await this.findOne(id);
     await this.permissionRepo.remove(permission);
+    this.logger.warn(`Permission deleted: ID ${id} (${permission.name})`);
   }
 }
