@@ -19,9 +19,9 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!requiredPermissions) return true;
-
-    // Fix: Explicitly type the request to avoid 'any' assignment
+    
     const request = context.switchToHttp().getRequest<RequestWithUser>();
+
     const user = request.user;
 
     // user.permissions is now safely typed based on your JwtPayload interface
