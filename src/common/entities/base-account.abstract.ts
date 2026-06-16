@@ -6,10 +6,16 @@ import {
   DeleteDateColumn,
   ManyToMany,
   JoinTable,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Role } from 'src/modules/roles/entities/role.entity';
 
+/**
+ * Abstract base class for identity-based accounts (Users and Admins).
+ * Provides core authentication fields, 2FA support, and lifecycle hooks for data sanitization.
+ */
 export abstract class BaseAccount {
   @PrimaryGeneratedColumn()
   id: number;
@@ -24,10 +30,10 @@ export abstract class BaseAccount {
   displayName: string;
 
   @Column({ select: false })
-  @Exclude() // Hides from JSON
+  @Exclude()
   password: string;
 
-  // --- 2FA Fields ---
+  // --- Multi-Factor Authentication ---
   @Column({ default: false })
   isTwoFactorEnabled: boolean;
 
@@ -35,7 +41,7 @@ export abstract class BaseAccount {
   @Exclude()
   twoFactorSecret: string | null;
 
-  // --- Password Reset Fields ---
+  // --- Password Recovery ---
   @Column({ nullable: true })
   @Exclude()
   passwordResetCode: string | null;
@@ -43,12 +49,12 @@ export abstract class BaseAccount {
   @Column({ nullable: true, type: 'timestamp' })
   passwordResetExpires: Date | null;
 
-  // --- Relations ---
+  // --- Access Control ---
   @ManyToMany(() => Role)
   @JoinTable()
   roles: Role[];
 
-  // --- Timestamps & Soft Delete ---
+  // --- Audit Timestamps ---
   @CreateDateColumn()
   createdAt: Date;
 
@@ -56,6 +62,27 @@ export abstract class BaseAccount {
   updatedAt: Date;
 
   @DeleteDateColumn()
-  @Exclude() // Usually, we don't want to expose deletedAt dates to the frontend
+  @Exclude()
   deletedAt: Date;
+
+  /**
+   * Lifecycle hook to normalize data before database persistence.
+   * Ensures emails and usernames are stored in a consistent format.
+   */
+  @BeforeInsert()
+  @BeforeUpdate()
+  protected sanitizeAccountData(): void {
+    if (this.email) {
+      this.email = this.email.toLowerCase().trim();
+    }
+
+    if (this.username) {
+      // Normalizing username to lowercase prevents "User1" and "user1" from being different accounts
+      this.username = this.username.toLowerCase().trim();
+    }
+
+    if (this.displayName) {
+      this.displayName = this.displayName.trim();
+    }
+  }
 }

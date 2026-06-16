@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-// 1. Define the exact shape of the Cloudflare API response
 interface TurnstileResponse {
   success: boolean;
   'error-codes'?: string[];
@@ -12,14 +11,21 @@ interface TurnstileResponse {
 @Injectable()
 export class CaptchaService {
   private readonly logger = new Logger(CaptchaService.name);
-  private isEnabled: boolean;
-  private secret: string;
+  private readonly isEnabled: boolean;
+  private readonly secret: string;
 
   constructor(private readonly configService: ConfigService) {
     this.isEnabled = this.configService.get<boolean>('CAPTCHA_ENABLED', true);
     this.secret = this.configService.get<string>('CAPTCHA_SECRET', '');
   }
 
+  /**
+   * Validates a Cloudflare Turnstile token.
+   *
+   * @param token - The client-side CAPTCHA response token
+   * @param ip - Optional remote IP for verification affinity
+   * @throws BadRequestException if verification fails or token is missing
+   */
   async verify(token?: string, ip?: string): Promise<void> {
     if (!this.isEnabled) return;
 
@@ -37,29 +43,23 @@ export class CaptchaService {
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
 
-      // 2. Safely cast the response to our defined Interface
       const data = (await response.json()) as TurnstileResponse;
 
       if (!data.success) {
-        // 3. Typescript now knows 'error-codes' is an array of strings
         this.logger.warn(
-          `CAPTCHA failed: ${JSON.stringify(data['error-codes'])}`,
+          `CAPTCHA validation rejected: ${JSON.stringify(data['error-codes'])}`,
         );
         throw new BadRequestException('Failed CAPTCHA verification');
       }
     } catch (error: unknown) {
-      // 4. Type error as unknown
       if (error instanceof BadRequestException) throw error;
 
-      // Handle the unknown error safely
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      this.logger.error('CAPTCHA verification service error', errorMessage);
+      this.logger.error(`CAPTCHA service unreachable: ${errorMessage}`);
       throw new BadRequestException('CAPTCHA verification unavailable');
     }
   }

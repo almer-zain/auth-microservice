@@ -10,63 +10,51 @@ import {
   ClassSerializerInterceptor,
   ParseIntPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiOkResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AdminsService } from './admins.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
+import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 
-@ApiTags('Admins') // Swagger Tag
-@Controller('admins') // REST endpoint: /admins
+@ApiTags('Admins')
+@ApiBearerAuth()
+@Controller('admins')
+@UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all admins with pagination' })
+  @ApiOperation({ summary: 'Retrieve paginated list of administrators' })
   @ApiOkResponse({
-    description: 'Paginated list of admins',
-    schema: {
-      example: {
-        data: [{ id: 1, username: 'admin1', email: 'test@test.com' }],
-        meta: {
-          totalItems: 1,
-          itemCount: 1,
-          itemsPerPage: 10,
-          totalPages: 1,
-          currentPage: 1,
-        },
-      },
-    },
+    description: 'Returns a paginated list of admins and metadata',
   })
   findAll(@Query() query: PaginationQueryDto) {
     return this.adminsService.findAll(query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get specific admin' })
-  @ApiResponse({ status: 200, description: 'Success' })
-  @ApiResponse({ status: 404, description: 'Admin not found' })
+  @ApiOperation({ summary: 'Fetch administrator by unique ID' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.adminsService.findOne(id);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Register a new admin' })
-  @ApiResponse({ status: 201, description: 'Admin created' })
-  @ApiResponse({ status: 409, description: 'Email/Username already exists' })
+  @ApiOperation({ summary: 'Register a new administrative account' })
   create(@Body() createAdminDto: CreateAdminDto) {
     return this.adminsService.create(createAdminDto);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update admin' })
+  @ApiOperation({ summary: 'Update administrator details or roles' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAdminDto: UpdateAdminDto,
@@ -75,7 +63,7 @@ export class AdminsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete admin' })
+  @ApiOperation({ summary: 'Scrub and soft-delete administrator' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.adminsService.remove(id);
   }

@@ -1,4 +1,3 @@
-// users.controller.ts
 import {
   Controller,
   Get,
@@ -35,31 +34,33 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  @ApiOperation({ summary: 'Create a new user' })
+  @ApiOperation({ summary: 'Register a new user' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  @ApiOperation({ summary: 'List users with pagination' })
+  @ApiOperation({ summary: 'Retrieve paginated user list' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiOkResponse({ description: 'Paginated user list' })
+  @ApiOkResponse({
+    description: 'Returns a paginated list of users and metadata',
+  })
   findAll(@Query() query: PaginationQueryDto) {
     return this.usersService.findAll(query);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiOperation({ summary: 'Fetch user by unique ID' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @ApiOperation({ summary: 'Update user details' })
+  @ApiOperation({ summary: 'Update existing user profile' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -69,7 +70,7 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete user' })
+  @ApiOperation({ summary: 'Scrub and soft-delete user' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }
