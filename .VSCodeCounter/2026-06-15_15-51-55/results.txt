@@ -1,0 +1,148 @@
+Date : 2026-06-15 15:51:55
+Directory : /home/generalegg/Project-P/blog-be
+Total : 78 files,  19989 codes, 260 comments, 492 blanks, all 20741 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| JSON               |          6 |     17,366 |          0 |          6 |     17,372 |
+| TypeScript         |         66 |      2,287 |        235 |        454 |      2,976 |
+| Handlebars         |          2 |        242 |          0 |         21 |        263 |
+| JavaScript         |          1 |         33 |          1 |          2 |         36 |
+| Dotenv             |          1 |         32 |         24 |          7 |         63 |
+| JSON with Comments |          1 |         25 |          0 |          1 |         26 |
+| Markdown           |          1 |          4 |          0 |          1 |          5 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++-------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                      | files      | code       | comment    | blank      | total      |
++-------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                         |         78 |     19,989 |        260 |        492 |     20,741 |
+| . (Files)                                                                                 |          9 |     17,451 |         25 |         16 |     17,492 |
+| src                                                                                       |         67 |      2,505 |        235 |        469 |      3,209 |
+| src (Files)                                                                               |          2 |        271 |         38 |         39 |        348 |
+| src/common                                                                                |          5 |         89 |          5 |         21 |        115 |
+| src/common/decorator                                                                      |          2 |         15 |          1 |          2 |         18 |
+| src/common/dto                                                                            |          1 |         18 |          0 |          3 |         21 |
+| src/common/entities                                                                       |          1 |         44 |          4 |         14 |         62 |
+| src/common/types                                                                          |          1 |         12 |          0 |          2 |         14 |
+| src/config                                                                                |          4 |         74 |          2 |         13 |         89 |
+| src/config/namespaces                                                                     |          2 |         13 |          0 |          4 |         17 |
+| src/config/strategies                                                                     |          2 |         61 |          2 |          9 |         72 |
+| src/modules                                                                               |         52 |      1,951 |        131 |        371 |      2,453 |
+| src/modules/admins                                                                        |          8 |        268 |          8 |         52 |        328 |
+| src/modules/admins (Files)                                                                |          5 |        217 |          6 |         42 |        265 |
+| src/modules/admins/dto                                                                    |          2 |         46 |          0 |          8 |         54 |
+| src/modules/admins/entities                                                               |          1 |          5 |          2 |          2 |          9 |
+| src/modules/auth                                                                          |         14 |        586 |         58 |        133 |        777 |
+| src/modules/auth (Files)                                                                  |          7 |        446 |         42 |         97 |        585 |
+| src/modules/auth/dto                                                                      |          4 |        105 |          2 |         21 |        128 |
+| src/modules/auth/entities                                                                 |          2 |         31 |          0 |         12 |         43 |
+| src/modules/auth/guard                                                                    |          1 |          4 |         14 |          3 |         21 |
+| src/modules/health                                                                        |          2 |         56 |          6 |         12 |         74 |
+| src/modules/mail                                                                          |          3 |        330 |          5 |         35 |        370 |
+| src/modules/mail (Files)                                                                  |          1 |         88 |          5 |         14 |        107 |
+| src/modules/mail/templates                                                                |          2 |        242 |          0 |         21 |        263 |
+| src/modules/permissions                                                                   |          9 |        249 |          2 |         53 |        304 |
+| src/modules/permissions (Files)                                                           |          5 |        170 |          0 |         34 |        204 |
+| src/modules/permissions/dto                                                               |          2 |         34 |          0 |          5 |         39 |
+| src/modules/permissions/entities                                                          |          1 |         13 |          0 |          5 |         18 |
+| src/modules/permissions/guards                                                            |          1 |         32 |          2 |          9 |         43 |
+| src/modules/roles                                                                         |          8 |        238 |          2 |         45 |        285 |
+| src/modules/roles (Files)                                                                 |          5 |        183 |          0 |         35 |        218 |
+| src/modules/roles/dto                                                                     |          2 |         32 |          0 |          5 |         37 |
+| src/modules/roles/entities                                                                |          1 |         23 |          2 |          5 |         30 |
+| src/modules/users                                                                         |          8 |        224 |         50 |         41 |        315 |
+| src/modules/users (Files)                                                                 |          5 |        201 |         48 |         34 |        283 |
+| src/modules/users/dto                                                                     |          2 |         18 |          0 |          5 |         23 |
+| src/modules/users/entities                                                                |          1 |          5 |          2 |          2 |          9 |
+| src/utils                                                                                 |          4 |        120 |         59 |         25 |        204 |
+| test                                                                                      |          2 |         33 |          0 |          7 |         40 |
++-------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                                  | language           | code       | comment    | blank      | total      |
++-------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| /home/generalegg/Project-P/blog-be/.example.env                                           | Dotenv             |         32 |         24 |          7 |         63 |
+| /home/generalegg/Project-P/blog-be/.prettierrc                                            | JSON               |          4 |          0 |          1 |          5 |
+| /home/generalegg/Project-P/blog-be/README.md                                              | Markdown           |          4 |          0 |          1 |          5 |
+| /home/generalegg/Project-P/blog-be/eslint.config.mjs                                      | JavaScript         |         33 |          1 |          2 |         36 |
+| /home/generalegg/Project-P/blog-be/nest-cli.json                                          | JSON               |         14 |          0 |          1 |         15 |
+| /home/generalegg/Project-P/blog-be/package-lock.json                                      | JSON               |     17,209 |          0 |          1 |     17,210 |
+| /home/generalegg/Project-P/blog-be/package.json                                           | JSON               |        126 |          0 |          1 |        127 |
+| /home/generalegg/Project-P/blog-be/src/app.module.ts                                      | TypeScript         |        180 |         22 |         19 |        221 |
+| /home/generalegg/Project-P/blog-be/src/common/decorator/permissions.decorator.ts          | TypeScript         |          4 |          1 |          1 |          6 |
+| /home/generalegg/Project-P/blog-be/src/common/decorator/sanitize.decorator.ts             | TypeScript         |         11 |          0 |          1 |         12 |
+| /home/generalegg/Project-P/blog-be/src/common/dto/pagination.dto.ts                       | TypeScript         |         18 |          0 |          3 |         21 |
+| /home/generalegg/Project-P/blog-be/src/common/entities/base-account.abstract.ts           | TypeScript         |         44 |          4 |         14 |         62 |
+| /home/generalegg/Project-P/blog-be/src/common/types/jwt-types.ts                          | TypeScript         |         12 |          0 |          2 |         14 |
+| /home/generalegg/Project-P/blog-be/src/config/namespaces/app.config.ts                    | TypeScript         |          6 |          0 |          2 |          8 |
+| /home/generalegg/Project-P/blog-be/src/config/namespaces/jwt.config.ts                    | TypeScript         |          7 |          0 |          2 |          9 |
+| /home/generalegg/Project-P/blog-be/src/config/strategies/jwt-access.strategy.ts           | TypeScript         |         28 |          0 |          3 |         31 |
+| /home/generalegg/Project-P/blog-be/src/config/strategies/jwt-refresh.strategy.ts          | TypeScript         |         33 |          2 |          6 |         41 |
+| /home/generalegg/Project-P/blog-be/src/main.ts                                            | TypeScript         |         91 |         16 |         20 |        127 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/admins.controller.spec.ts           | TypeScript         |         16 |          0 |          5 |         21 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/admins.controller.ts                | TypeScript         |         76 |          0 |          7 |         83 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/admins.module.ts                    | TypeScript         |         12 |          0 |          2 |         14 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/admins.service.spec.ts              | TypeScript         |         14 |          0 |          5 |         19 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/admins.service.ts                   | TypeScript         |         99 |          6 |         23 |        128 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/dto/create-admin.dto.ts             | TypeScript         |         41 |          0 |          6 |         47 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/dto/update-admin.dto.ts             | TypeScript         |          5 |          0 |          2 |          7 |
+| /home/generalegg/Project-P/blog-be/src/modules/admins/entities/admin.entity.ts            | TypeScript         |          5 |          2 |          2 |          9 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/auth.controller.spec.ts               | TypeScript         |         16 |          0 |          5 |         21 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/auth.controller.ts                    | TypeScript         |         70 |          0 |          9 |         79 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/auth.module.ts                        | TypeScript         |         11 |          0 |          2 |         13 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/auth.service.spec.ts                  | TypeScript         |         14 |          0 |          5 |         19 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/auth.service.ts                       | TypeScript         |        214 |         28 |         56 |        298 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/captcha.service.ts                    | TypeScript         |         51 |          5 |         11 |         67 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/device.service.ts                     | TypeScript         |         70 |          9 |          9 |         88 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/dto/login.dto.ts                      | TypeScript         |         26 |          0 |          6 |         32 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/dto/register.dto.ts                   | TypeScript         |         38 |          0 |          6 |         44 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/dto/reset-password.dto.ts             | TypeScript         |         26 |          1 |          5 |         32 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/dto/verify-2fa.dto.ts                 | TypeScript         |         15 |          1 |          4 |         20 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/entities/account-device.entity.ts     | TypeScript         |         30 |          0 |         11 |         41 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/entities/auth.entity.ts               | TypeScript         |          1 |          0 |          1 |          2 |
+| /home/generalegg/Project-P/blog-be/src/modules/auth/guard/jwt-auth.guard.ts               | TypeScript         |          4 |         14 |          3 |         21 |
+| /home/generalegg/Project-P/blog-be/src/modules/health/health.controller.ts                | TypeScript         |         41 |          6 |         10 |         57 |
+| /home/generalegg/Project-P/blog-be/src/modules/health/health.module.ts                    | TypeScript         |         15 |          0 |          2 |         17 |
+| /home/generalegg/Project-P/blog-be/src/modules/mail/mail.service.ts                       | TypeScript         |         88 |          5 |         14 |        107 |
+| /home/generalegg/Project-P/blog-be/src/modules/mail/templates/new-device.hbs              | Handlebars         |        108 |          0 |          9 |        117 |
+| /home/generalegg/Project-P/blog-be/src/modules/mail/templates/reset-password.hbs          | Handlebars         |        134 |          0 |         12 |        146 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/dto/create-permission.dto.ts   | TypeScript         |         31 |          0 |          3 |         34 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/dto/update-permission.dto.ts   | TypeScript         |          3 |          0 |          2 |          5 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/entities/permission.entity.ts  | TypeScript         |         13 |          0 |          5 |         18 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/guards/permissions.guard.ts    | TypeScript         |         32 |          2 |          9 |         43 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/permissions.controller.spec.ts | TypeScript         |         16 |          0 |          5 |         21 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/permissions.controller.ts      | TypeScript         |         60 |          0 |          7 |         67 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/permissions.module.ts          | TypeScript         |          8 |          0 |          2 |         10 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/permissions.service.spec.ts    | TypeScript         |         14 |          0 |          5 |         19 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/permissions.service.ts         | TypeScript         |         72 |          0 |         15 |         87 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/dto/create-role.dto.ts               | TypeScript         |         29 |          0 |          3 |         32 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/dto/update-role.dto.ts               | TypeScript         |          3 |          0 |          2 |          5 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/entities/role.entity.ts              | TypeScript         |         23 |          2 |          5 |         30 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/roles.controller.spec.ts             | TypeScript         |         16 |          0 |          5 |         21 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/roles.controller.ts                  | TypeScript         |         57 |          0 |          7 |         64 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/roles.module.ts                      | TypeScript         |          8 |          0 |          2 |         10 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/roles.service.spec.ts                | TypeScript         |         14 |          0 |          5 |         19 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/roles.service.ts                     | TypeScript         |         88 |          0 |         16 |        104 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/dto/create-user.dto.ts               | TypeScript         |         15 |          0 |          3 |         18 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/dto/update-user.dto.ts               | TypeScript         |          3 |          0 |          2 |          5 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/entities/user.entity.ts              | TypeScript         |          5 |          2 |          2 |          9 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/users.controller.spec.ts             | TypeScript         |         16 |          0 |          5 |         21 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/users.controller.ts                  | TypeScript         |         69 |          1 |          7 |         77 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/users.module.ts                      | TypeScript         |         11 |          0 |          2 |         13 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/users.service.spec.ts                | TypeScript         |         14 |          0 |          5 |         19 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/users.service.ts                     | TypeScript         |         91 |         47 |         15 |        153 |
+| /home/generalegg/Project-P/blog-be/src/utils/auth-decorator.util.ts                       | TypeScript         |         50 |         29 |          7 |         86 |
+| /home/generalegg/Project-P/blog-be/src/utils/error.util.ts                                | TypeScript         |         18 |          7 |          6 |         31 |
+| /home/generalegg/Project-P/blog-be/src/utils/sanitize.util.ts                             | TypeScript         |         52 |         23 |         11 |         86 |
+| /home/generalegg/Project-P/blog-be/src/utils/url-format.util.ts                           | TypeScript         |          0 |          0 |          1 |          1 |
+| /home/generalegg/Project-P/blog-be/test/app.e2e-spec.ts                                   | TypeScript         |         24 |          0 |          6 |         30 |
+| /home/generalegg/Project-P/blog-be/test/jest-e2e.json                                     | JSON               |          9 |          0 |          1 |         10 |
+| /home/generalegg/Project-P/blog-be/tsconfig.build.json                                    | JSON               |          4 |          0 |          1 |          5 |
+| /home/generalegg/Project-P/blog-be/tsconfig.json                                          | JSON with Comments |         25 |          0 |          1 |         26 |
+| Total                                                                                     |                    |     19,989 |        260 |        492 |     20,741 |
++-------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

@@ -8,7 +8,6 @@ import {
   Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -22,13 +21,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
+  @ApiOperation({ summary: 'Register a new standard user' })
   register(@Body() data: RegisterDto) {
     return this.authService.register(data);
   }
 
   @Post('login/admin')
-  @ApiOperation({ summary: 'Admin login' })
+  @ApiOperation({ summary: 'Authenticate administrative account' })
   adminLogin(
     @Body() data: LoginDto,
     @Ip() ip: string,
@@ -38,7 +37,7 @@ export class AuthController {
   }
 
   @Post('login/user')
-  @ApiOperation({ summary: 'User login' })
+  @ApiOperation({ summary: 'Authenticate standard user account' })
   userLogin(
     @Body() data: LoginDto,
     @Ip() ip: string,
@@ -49,13 +48,13 @@ export class AuthController {
 
   @Post('2fa/generate')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Generate 2FA Secret' })
+  @ApiOperation({ summary: 'Initiate 2FA setup and return QR code' })
   generate2FA(@Body('userId') userId: number) {
     return this.authService.generate2FASecret(userId);
   }
 
   @Post('2fa/verify')
-  @ApiOperation({ summary: 'Verify 2FA Token' })
+  @ApiOperation({ summary: 'Validate TOTP token and finalize login' })
   verify2FA(
     @Body() data: Verify2FADto,
     @Ip() ip: string,
@@ -65,13 +64,13 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  @ApiOperation({ summary: 'Request password reset' })
+  @ApiOperation({ summary: 'Trigger password recovery email' })
   forgotPassword(@Body('email') email: string) {
     return this.authService.forgotPassword(email);
   }
 
   @Post('reset-password')
-  @ApiOperation({ summary: 'Reset password with code' })
+  @ApiOperation({ summary: 'Apply new password using recovery token' })
   resetPassword(@Body() data: ResetPasswordDto) {
     return this.authService.resetPassword(data);
   }
