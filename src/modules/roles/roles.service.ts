@@ -13,8 +13,8 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
-export class RoleService {
-  private readonly logger = new Logger(RoleService.name);
+export class RolesService {
+  private readonly logger = new Logger(RolesService.name);
 
   constructor(
     @InjectRepository(Role)

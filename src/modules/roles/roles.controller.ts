@@ -19,7 +19,7 @@ import {
   ApiOkResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { RoleService } from './roles.service';
+import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
@@ -30,13 +30,13 @@ import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 @Controller('roles')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
-export class RoleController {
-  constructor(private readonly roleService: RoleService) {}
+export class RolesController {
+  constructor(private readonly rolesService: RolesService) {}
 
   @Post()
   @ApiOperation({ summary: 'Define a new system role' })
   create(@Body() dto: CreateRoleDto) {
-    return this.roleService.create(dto);
+    return this.rolesService.create(dto);
   }
 
   @Get()
@@ -45,24 +45,24 @@ export class RoleController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiOkResponse({ description: 'Paginated list of roles and metadata' })
   findAll(@Query() query: PaginationQueryDto) {
-    return this.roleService.findAll(query);
+    return this.rolesService.findAll(query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get role details and permission set' })
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.roleService.findOne(id);
+    return this.rolesService.findOne(id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Modify role name or permission assignments' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoleDto) {
-    return this.roleService.update(id, dto);
+    return this.rolesService.update(id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Permanently delete a role' })
   remove(@Param('id', ParseIntPipe) id: number) {
-    return this.roleService.remove(id);
+    return this.rolesService.remove(id);
   }
 }

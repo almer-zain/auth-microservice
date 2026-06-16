@@ -13,15 +13,14 @@ export class Role {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true, length: 50 })
   name: string;
 
   @ManyToMany(() => Permission)
-  @JoinTable({ name: 'roles_permissions_permissions' }) // Explicit naming helps prevent DB confusion
+  @JoinTable({ name: 'roles_permissions_permissions' })
   permissions: Permission[];
 }
 
-// Used for typing req.user and Auth logic
 export interface AccountWithRoles {
   id: number;
   email: string;

@@ -5,11 +5,11 @@ export class Permission {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
-  name: string; // e.g., 'users.create', 'posts.delete'
+  @Column({ type: 'varchar', unique: true, length: 100 })
+  name: string; // e.g., 'users.create'
 
-  @Column({ nullable: true })
-  description: string;
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 }
 
 export interface PermissionEntity {
