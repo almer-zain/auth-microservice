@@ -20,33 +20,34 @@ export abstract class BaseAccount {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true, length: 255 })
   email: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true, length: 100 })
   username: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   displayName: string;
 
-  @Column({ select: false })
+  @Column({ type: 'varchar', select: false })
   @Exclude()
   password: string;
 
   // --- Multi-Factor Authentication ---
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isTwoFactorEnabled: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   @Exclude()
   twoFactorSecret: string | null;
 
   // --- Password Recovery ---
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   @Exclude()
   passwordResetCode: string | null;
 
-  @Column({ nullable: true, type: 'timestamp' })
+  @Column({ type: 'timestamp', nullable: true })
+  @Exclude()
   passwordResetExpires: Date | null;
 
   // --- Access Control ---
@@ -55,15 +56,15 @@ export abstract class BaseAccount {
   roles: Role[];
 
   // --- Audit Timestamps ---
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ type: 'timestamp', nullable: true })
   @Exclude()
-  deletedAt: Date;
+  deletedAt: Date | null;
 
   /**
    * Lifecycle hook to normalize data before database persistence.

@@ -21,11 +21,11 @@ import { JwtRefreshStrategy } from './config/strategies/jwt-refresh.strategy';
 // Feature Modules
 import { HealthModule } from './modules/health/health.module';
 import { AdminsModule } from './modules/admins/admins.module';
-import { PermissionModule } from './modules/permissions/permissions.module';
-import { RoleModule } from './modules/roles/roles.module';
 import { DatabaseType, DataSourceOptions } from 'typeorm';
 import Redis from 'ioredis';
 import { LoggerModule } from 'nestjs-pino';
+import { RolesModule } from './modules/roles/roles.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 @Module({
   imports: [
     // CONFIGURATION (Strict Validation)
@@ -65,10 +65,8 @@ import { LoggerModule } from 'nestjs-pino';
         // Cache & Redis
         CACHE_TTL: Joi.number().default(600),
         USE_REDIS: Joi.boolean().default(false),
-        REDIS_URL: Joi.string().when('USE_REDIS', {
-          is: true,
-          then: Joi.required(),
-        }),
+        REDIS_HOST: Joi.string().default('localhost'),
+        REDIS_PORT: Joi.number().default(6379),
 
         // Mail
         MAIL_HOST: Joi.string().required(),
@@ -145,7 +143,10 @@ import { LoggerModule } from 'nestjs-pino';
         if (config.get<boolean>('USE_REDIS')) {
           return {
             store: await redisStore({
-              url: config.get('REDIS_URL'),
+              socket: {
+                host: config.get<string>('REDIS_HOST'),
+                port: config.get<number>('REDIS_PORT'),
+              },
               ttl: config.get<number>('CACHE_TTL') || 600,
             }),
           };
@@ -182,11 +183,6 @@ import { LoggerModule } from 'nestjs-pino';
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        // Explicitly assert the Redis class type constructor structure to satisfy ESLint
-        const RedisClient = Redis as unknown as new (
-          url: string,
-        ) => typeof Redis;
-
         return {
           throttlers: [
             {
@@ -196,9 +192,10 @@ import { LoggerModule } from 'nestjs-pino';
           ],
           storage: config.get<boolean>('USE_REDIS')
             ? new ThrottlerStorageRedisService(
-                new RedisClient(
-                  config.get<string>('REDIS_URL') ?? 'redis://localhost:6379',
-                ) as unknown as Redis,
+                new Redis({
+                  host: config.get<string>('REDIS_HOST', 'localhost'),
+                  port: config.get<number>('REDIS_PORT', 6379),
+                }),
               )
             : undefined,
         };
@@ -212,8 +209,8 @@ import { LoggerModule } from 'nestjs-pino';
     // APP MODULES
     HealthModule,
     AdminsModule,
-    PermissionModule,
-    RoleModule,
+    PermissionsModule,
+    RolesModule,
   ],
   providers: [JwtAccessStrategy, JwtRefreshStrategy],
 })

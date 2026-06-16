@@ -12,8 +12,8 @@ import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
-export class PermissionService {
-  private readonly logger = new Logger(PermissionService.name);
+export class PermissionsService {
+  private readonly logger = new Logger(PermissionsService.name);
 
   constructor(
     @InjectRepository(Permission)
