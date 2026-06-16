@@ -268,4 +268,58 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+
+  /**
+   * Validates or provisions a user arriving via OAuth.
+   *
+   * @param profile - The normalized data from the OAuth strategy
+   */
+  async validateOAuthUser(profile: {
+    email: string;
+    firstName: string;
+    lastName: string;
+  }) {
+    const { email, firstName, lastName } = profile;
+    const repo = this.userRepository; // OAuth usually targets standard users
+
+    // 1. Check for existing user
+    const user = await repo.findOne({
+      where: { email },
+      relations: ['roles', 'roles.permissions'],
+    });
+
+    if (user) {
+      this.logger.log(`OAuth Login: ${email} authenticated via Google`);
+      return this.generateTokens(user);
+    }
+
+    // 2. Provision new user if not found
+    this.logger.log(`OAuth Provisioning: Creating new account for ${email}`);
+
+    // Generate unusable password for security
+    const placeholderPassword = await bcrypt.hash(
+      crypto.randomBytes(64).toString('hex'),
+      10,
+    );
+
+    const newUser = repo.create({
+      email,
+      username: email.split('@')[0] + crypto.randomInt(1000, 9999),
+      displayName: `${firstName} ${lastName}`.trim() || email.split('@')[0],
+      password: placeholderPassword,
+    });
+
+    // Optional: Assign a default 'user' role here if your Role system is ready
+    // newUser.roles = [await this.roleRepo.findOneBy({ name: 'user' })];
+
+    const savedUser = await repo.save(newUser);
+
+    // Re-fetch to ensure relations are loaded for token generation
+    const finalUser = await repo.findOne({
+      where: { id: savedUser.id },
+      relations: ['roles', 'roles.permissions'],
+    });
+
+    return this.generateTokens(finalUser!);
+  }
 }

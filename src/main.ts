@@ -13,6 +13,8 @@ import hpp from 'hpp';
 import { Application } from 'express';
 import { Transport } from '@nestjs/microservices';
 import { Logger } from 'nestjs-pino';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -110,6 +112,12 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, document);
   }
+
+  // Global Exception Filter (Standardizes error output for Pinia)
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Global Logging Interceptor (Standardizes server logs)
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Setup Graceful Shutdown
   app.enableShutdownHooks();
