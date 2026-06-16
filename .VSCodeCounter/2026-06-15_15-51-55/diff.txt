@@ -1,0 +1,55 @@
+Date : 2026-06-15 15:51:55
+Directory : /home/generalegg/Project-P/blog-be
+Total : 16 files,  17531 codes, 38 comments, 24 blanks, all 17593 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| JSON               |          6 |     17,366 |          0 |          6 |     17,372 |
+| TypeScript         |          6 |         71 |         13 |          7 |         91 |
+| JavaScript         |          1 |         33 |          1 |          2 |         36 |
+| Dotenv             |          1 |         32 |         24 |          7 |         63 |
+| JSON with Comments |          1 |         25 |          0 |          1 |         26 |
+| Markdown           |          1 |          4 |          0 |          1 |          5 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                   | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                      |         16 |     17,531 |         38 |         24 |     17,593 |
+| . (Files)                                                                              |          9 |     17,451 |         25 |         16 |     17,492 |
+| src                                                                                    |          5 |         47 |         13 |          1 |         61 |
+| src/modules                                                                            |          5 |         47 |         13 |          1 |         61 |
+| src/modules/permissions                                                                |          1 |          0 |        -20 |         -1 |        -21 |
+| src/modules/permissions/guards                                                         |          1 |          0 |        -20 |         -1 |        -21 |
+| src/modules/roles                                                                      |          3 |         42 |          2 |          2 |         46 |
+| src/modules/roles (Files)                                                              |          2 |         48 |          0 |          3 |         51 |
+| src/modules/roles/entities                                                             |          1 |         -6 |          2 |         -1 |         -5 |
+| src/modules/users                                                                      |          1 |          5 |         31 |          0 |         36 |
+| test                                                                                   |          2 |         33 |          0 |          7 |         40 |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                               | language           | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| /home/generalegg/Project-P/blog-be/.example.env                                        | Dotenv             |         32 |         24 |          7 |         63 |
+| /home/generalegg/Project-P/blog-be/.prettierrc                                         | JSON               |          4 |          0 |          1 |          5 |
+| /home/generalegg/Project-P/blog-be/README.md                                           | Markdown           |          4 |          0 |          1 |          5 |
+| /home/generalegg/Project-P/blog-be/eslint.config.mjs                                   | JavaScript         |         33 |          1 |          2 |         36 |
+| /home/generalegg/Project-P/blog-be/nest-cli.json                                       | JSON               |         14 |          0 |          1 |         15 |
+| /home/generalegg/Project-P/blog-be/package-lock.json                                   | JSON               |     17,209 |          0 |          1 |     17,210 |
+| /home/generalegg/Project-P/blog-be/package.json                                        | JSON               |        126 |          0 |          1 |        127 |
+| /home/generalegg/Project-P/blog-be/src/modules/permissions/guards/permissions.guard.ts | TypeScript         |          0 |        -20 |         -1 |        -21 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/entities/role.entity.ts           | TypeScript         |         -6 |          2 |         -1 |         -5 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/roles.controller.ts               | TypeScript         |         20 |          0 |          0 |         20 |
+| /home/generalegg/Project-P/blog-be/src/modules/roles/roles.service.ts                  | TypeScript         |         28 |          0 |          3 |         31 |
+| /home/generalegg/Project-P/blog-be/src/modules/users/users.service.ts                  | TypeScript         |          5 |         31 |          0 |         36 |
+| /home/generalegg/Project-P/blog-be/test/app.e2e-spec.ts                                | TypeScript         |         24 |          0 |          6 |         30 |
+| /home/generalegg/Project-P/blog-be/test/jest-e2e.json                                  | JSON               |          9 |          0 |          1 |         10 |
+| /home/generalegg/Project-P/blog-be/tsconfig.build.json                                 | JSON               |          4 |          0 |          1 |          5 |
+| /home/generalegg/Project-P/blog-be/tsconfig.json                                       | JSON with Comments |         25 |          0 |          1 |         26 |
+| Total                                                                                  |                    |     17,531 |         38 |         24 |     17,593 |
++----------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

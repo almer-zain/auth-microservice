@@ -21,14 +21,14 @@ import { JwtRefreshStrategy } from './config/strategies/jwt-refresh.strategy';
 // Feature Modules
 import { HealthModule } from './modules/health/health.module';
 import { AdminsModule } from './modules/admins/admins.module';
-import { PermissionModule } from './modules/permissions/permissions.module';
-import { RoleModule } from './modules/roles/roles.module';
 import { DatabaseType, DataSourceOptions } from 'typeorm';
 import Redis from 'ioredis';
-
+import { LoggerModule } from 'nestjs-pino';
+import { RolesModule } from './modules/roles/roles.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 @Module({
   imports: [
-    // 1. CONFIGURATION (Strict Validation)
+    // CONFIGURATION (Strict Validation)
     ConfigModule.forRoot({
       isGlobal: true,
       load: [jwtConfig],
@@ -65,10 +65,8 @@ import Redis from 'ioredis';
         // Cache & Redis
         CACHE_TTL: Joi.number().default(600),
         USE_REDIS: Joi.boolean().default(false),
-        REDIS_URL: Joi.string().when('USE_REDIS', {
-          is: true,
-          then: Joi.required(),
-        }),
+        REDIS_HOST: Joi.string().default('localhost'),
+        REDIS_PORT: Joi.number().default(6379),
 
         // Mail
         MAIL_HOST: Joi.string().required(),
@@ -90,7 +88,19 @@ import Redis from 'ioredis';
       }),
     }),
 
-    // 2. GRACEFUL SHUTDOWN (Crucial for Production)
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { colorize: true } }
+            : undefined,
+        level: 'info',
+        // Redact sensitive information from logs
+        redact: ['req.headers.authorization', 'req.body.password'],
+      },
+    }),
+
+    // GRACEFUL SHUTDOWN (Crucial for Production)
     // TODO: Add this...
     GracefulShutdownModule.forRoot({
       cleanup: () => {
@@ -99,7 +109,7 @@ import Redis from 'ioredis';
       },
     }),
 
-    // 3. DATABASE
+    // DATABASE
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService): TypeOrmModuleOptions => {
@@ -125,7 +135,7 @@ import Redis from 'ioredis';
       },
     }),
 
-    // 4. CACHING (Redis or Memory)
+    // CACHING (Redis or Memory)
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
@@ -133,7 +143,10 @@ import Redis from 'ioredis';
         if (config.get<boolean>('USE_REDIS')) {
           return {
             store: await redisStore({
-              url: config.get('REDIS_URL'),
+              socket: {
+                host: config.get<string>('REDIS_HOST'),
+                port: config.get<number>('REDIS_PORT'),
+              },
               ttl: config.get<number>('CACHE_TTL') || 600,
             }),
           };
@@ -142,7 +155,7 @@ import Redis from 'ioredis';
       },
     }),
 
-    // 5. MAILER
+    // MAILER
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -166,15 +179,10 @@ import Redis from 'ioredis';
       }),
     }),
 
-    // 6. SECURITY: Rate Limiting
+    // SECURITY: Rate Limiting
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        // Explicitly assert the Redis class type constructor structure to satisfy ESLint
-        const RedisClient = Redis as unknown as new (
-          url: string,
-        ) => typeof Redis;
-
         return {
           throttlers: [
             {
@@ -184,24 +192,25 @@ import Redis from 'ioredis';
           ],
           storage: config.get<boolean>('USE_REDIS')
             ? new ThrottlerStorageRedisService(
-                new RedisClient(
-                  config.get<string>('REDIS_URL') ?? 'redis://localhost:6379',
-                ) as any, // Cast to any to cleanly bypass internal version mismatches
+                new Redis({
+                  host: config.get<string>('REDIS_HOST', 'localhost'),
+                  port: config.get<number>('REDIS_PORT', 6379),
+                }),
               )
             : undefined,
         };
       },
     }),
 
-    // 7. AUTH
+    // AUTH
     JwtModule.register({}), // Handled dynamically in AuthService
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
-    // 8. APP MODULES
+    // APP MODULES
     HealthModule,
     AdminsModule,
-    PermissionModule,
-    RoleModule,
+    PermissionsModule,
+    RolesModule,
   ],
   providers: [JwtAccessStrategy, JwtRefreshStrategy],
 })

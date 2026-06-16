@@ -1,40 +1,70 @@
 import {
   Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseInterceptors,
   ClassSerializerInterceptor,
+  ParseIntPipe,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiOkResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { AdminsService } from './admins.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
-import { AdminsService } from './admins.service';
+import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
+import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 
-@Controller()
-@UseInterceptors(ClassSerializerInterceptor) // Crucial to hide the password and 2FA secrets
+@ApiTags('Admins')
+@ApiBearerAuth()
+@Controller('admins')
+@UseGuards(JwtAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
-  @MessagePattern('admin.create')
-  create(@Payload() createAdminDto: CreateAdminDto) {
-    return this.adminsService.create(createAdminDto);
+  @Get()
+  @ApiOperation({ summary: 'Retrieve paginated list of administrators' })
+  @ApiOkResponse({
+    description: 'Returns a paginated list of admins and metadata',
+  })
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.adminsService.findAll(query);
   }
 
-  @MessagePattern('admin.findAll')
-  findAll() {
-    return this.adminsService.findAll();
-  }
-
-  @MessagePattern('admin.findOne')
-  findOne(@Payload() id: number) {
+  @Get(':id')
+  @ApiOperation({ summary: 'Fetch administrator by unique ID' })
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.adminsService.findOne(id);
   }
 
-  @MessagePattern('admin.update')
-  update(@Payload() updateAdminDto: UpdateAdminDto) {
-    return this.adminsService.update(updateAdminDto.id, updateAdminDto);
+  @Post()
+  @ApiOperation({ summary: 'Register a new administrative account' })
+  create(@Body() createAdminDto: CreateAdminDto) {
+    return this.adminsService.create(createAdminDto);
   }
 
-  @MessagePattern('admin.remove')
-  remove(@Payload() id: number) {
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update administrator details or roles' })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateAdminDto: UpdateAdminDto,
+  ) {
+    return this.adminsService.update(id, updateAdminDto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Scrub and soft-delete administrator' })
+  remove(@Param('id', ParseIntPipe) id: number) {
     return this.adminsService.remove(id);
   }
 }

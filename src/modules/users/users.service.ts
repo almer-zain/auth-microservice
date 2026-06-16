@@ -1,59 +1,162 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private readonly usersRepository: Repository<User>,
   ) {}
 
-  // ----------------------------------------------------------------
-  // Create User
-  // ----------------------------------------------------------------
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const newUser = this.usersRepository.create(createUserDto);
-    return await this.usersRepository.save(newUser);
+  /**
+   * Creates a new user record.
+   * Validates uniqueness of email and username before instantiation.
+   *
+   * @param dto - User registration data
+   * @returns The persisted user entity
+   * @throws ConflictException if email or username is already in use
+   */
+  async create(dto: CreateUserDto): Promise<User> {
+    const existing = await this.usersRepository.findOne({
+      where: [{ email: dto.email }, { username: dto.username }],
+    });
+
+    if (existing) {
+      this.logger.warn(
+        `Registration attempt failed: Identity conflict for ${dto.email}`,
+      );
+      throw new ConflictException(
+        'User with this email or username already exists',
+      );
+    }
+
+    const newUser = this.usersRepository.create(dto);
+    const savedUser = await this.usersRepository.save(newUser);
+
+    this.logger.log(`User created successfully: ID ${savedUser.id}`);
+    return savedUser;
   }
 
-  // ----------------------------------------------------------------
-  // Find All User
-  // ----------------------------------------------------------------
-  async findAll(): Promise<User[]> {
-    return await this.usersRepository.find();
+  /**
+   * Retrieves a paginated list of users.
+   *
+   * @param query - Pagination and limit parameters
+   * @returns Paginated result set with metadata
+   */
+  async findAll(query: PaginationQueryDto) {
+    const { page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.usersRepository.findAndCount({
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+      relations: ['roles'], // Ensures roles are included in the list
+    });
+
+    return {
+      data: items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
-  // ----------------------------------------------------------------
-  // Find One User
-  // ----------------------------------------------------------------
+  /**
+   * Finds a single user by primary key.
+   *
+   * @param id - The unique identifier of the user
+   * @returns The user entity including roles
+   * @throws NotFoundException if user does not exist
+   */
   async findOne(id: number): Promise<User> {
-    const user = await this.usersRepository.findOneBy({ id });
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['roles'],
+    });
+
     if (!user) {
+      this.logger.error(`Read operation failed: User ID ${id} not found`);
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     return user;
   }
 
-  // ----------------------------------------------------------------
-  // Update User
-  // ----------------------------------------------------------------
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id); // Checks if user exists
-    const updatedUser = Object.assign(user, updateUserDto);
-    return await this.usersRepository.save(updatedUser);
+  /**
+   * Updates user profile data.
+   * Performs a conflict check if sensitive identifiers (email/username) are changed.
+   *
+   * @param id - Target user ID
+   * @param dto - Partial update data
+   * @returns The updated user entity
+   */
+  async update(id: number, dto: UpdateUserDto): Promise<User> {
+    const user = await this.findOne(id);
+
+    if (dto.email || dto.username) {
+      const conflict = await this.usersRepository.findOne({
+        where: [
+          { ...(dto.email && { email: dto.email }), id: Not(id) },
+          { ...(dto.username && { username: dto.username }), id: Not(id) },
+        ],
+      });
+
+      if (conflict) {
+        this.logger.warn(
+          `Update conflict: User ${id} attempted to use taken credentials`,
+        );
+        throw new ConflictException(
+          'Email or Username already taken by another user',
+        );
+      }
+    }
+
+    Object.assign(user, dto);
+    const updated = await this.usersRepository.save(user);
+    this.logger.log(`User updated: ID ${id}`);
+    return updated;
   }
 
-  // ----------------------------------------------------------------
-  // Remove User
-  // ----------------------------------------------------------------
+  /**
+   * Performs a privacy-compliant soft delete.
+   * Scrubs personally identifiable information (PII) before marking the record as deleted.
+   *
+   * @param id - Target user ID
+   * @throws NotFoundException if user does not exist
+   */
   async remove(id: number): Promise<void> {
-    const result = await this.usersRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
+    const user = await this.findOne(id);
+
+    // Scrubbing PII for data retention compliance
+    user.email = `deleted-${id}@internal.system`;
+    user.username = `deleted_user_${id}`;
+    user.displayName = 'Deleted User';
+    user.password = 'SCRUBBED'; // Invalidate password
+    user.isTwoFactorEnabled = false;
+    user.twoFactorSecret = null;
+
+    // Save the scrubbed data first
+    await this.usersRepository.save(user);
+
+    // Mark as soft-deleted (sets deletedAt timestamp)
+    await this.usersRepository.softRemove(user);
+
+    this.logger.warn(`User record scrubbed and soft-deleted: ID ${id}`);
   }
 }

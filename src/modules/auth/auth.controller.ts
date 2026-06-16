@@ -1,58 +1,77 @@
 import {
   Controller,
+  Post,
+  Body,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Ip,
+  Headers,
 } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Verify2FADto } from './dto/verify-2fa.dto';
 
-export interface Verify2FAPayload {
-  userAgent?: string;
-  ip?: string;
-  userId: number;
-  token: string;
-}
-
-@Controller()
-@UseInterceptors(ClassSerializerInterceptor) // Activates the @Exclude() in your Entity
+@ApiTags('Authentication')
+@Controller('auth')
+@UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @MessagePattern('auth.register')
-  register(@Payload() data: RegisterDto) {
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new standard user' })
+  register(@Body() data: RegisterDto) {
     return this.authService.register(data);
   }
 
-  @MessagePattern('auth.admin.login')
-  adminLogin(@Payload() data: LoginDto) {
-    return this.authService.login(data, 'admin');
+  @Post('login/admin')
+  @ApiOperation({ summary: 'Authenticate administrative account' })
+  adminLogin(
+    @Body() data: LoginDto,
+    @Ip() ip: string,
+    @Headers('user-agent') ua: string,
+  ) {
+    return this.authService.login({ ...data, ip, userAgent: ua }, 'admin');
   }
 
-  @MessagePattern('auth.user.login')
-  userLogin(@Payload() data: LoginDto) {
-    return this.authService.login(data);
+  @Post('login/user')
+  @ApiOperation({ summary: 'Authenticate standard user account' })
+  userLogin(
+    @Body() data: LoginDto,
+    @Ip() ip: string,
+    @Headers('user-agent') ua: string,
+  ) {
+    return this.authService.login({ ...data, ip, userAgent: ua }, 'user');
   }
 
-  @MessagePattern('auth.generate2FA')
-  generate2FA(@Payload() userId: number) {
+  @Post('2fa/generate')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Initiate 2FA setup and return QR code' })
+  generate2FA(@Body('userId') userId: number) {
     return this.authService.generate2FASecret(userId);
   }
 
-  @MessagePattern('auth.verify2FA')
-  verify2FA(@Payload() data: Verify2FAPayload) {
-    return this.authService.verify2FA(data, data.userId, data.token);
+  @Post('2fa/verify')
+  @ApiOperation({ summary: 'Validate TOTP token and finalize login' })
+  verify2FA(
+    @Body() data: Verify2FADto,
+    @Ip() ip: string,
+    @Headers('user-agent') ua: string,
+  ) {
+    return this.authService.verify2FA(data, ip, ua);
   }
 
-  @MessagePattern('auth.forgotPassword')
-  forgotPassword(@Payload() email: string) {
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Trigger password recovery email' })
+  forgotPassword(@Body('email') email: string) {
     return this.authService.forgotPassword(email);
   }
 
-  @MessagePattern('auth.resetPassword')
-  resetPassword(@Payload() data: ResetPasswordDto) {
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Apply new password using recovery token' })
+  resetPassword(@Body() data: ResetPasswordDto) {
     return this.authService.resetPassword(data);
   }
 }
